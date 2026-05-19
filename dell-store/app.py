@@ -1,4 +1,8 @@
 import os
+import io
+import json
+import random
+from datetime import datetime
 import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -6,7 +10,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, Product, User, Order, OrderItem, Review
 from config import Config
-import io
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -17,8 +20,10 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 
-# Create upload folder if not exists
+# Create folders if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
+os.makedirs(DATA_FOLDER, exist_ok=True)
 
 # Initialize extensions
 db.init_app(app)
@@ -133,7 +138,6 @@ def checkout():
             flash("Cart is empty!", "error")
             return redirect(url_for("cart"))
 
-        # Calculate total
         total = 0
         order_items_list = []
         for pid, qty in cart_data.items():
@@ -142,7 +146,6 @@ def checkout():
                 total += product.selling_price * qty
                 order_items_list.append((product, qty))
 
-        # Create order
         order = Order(
             user_id=current_user.id,
             total_amount=total,
@@ -151,7 +154,6 @@ def checkout():
         db.session.add(order)
         db.session.flush()
 
-        # Add order items
         for product, qty in order_items_list:
             item = OrderItem(
                 order_id=order.id,
@@ -162,9 +164,7 @@ def checkout():
             db.session.add(item)
 
         db.session.commit()
-        session["cart"] = {}  # Clear cart
-
-        # TODO: Integrate Razorpay/Stripe payment here
+        session["cart"] = {}
         flash(f"Order #{order.id} placed successfully!", "success")
         return redirect(url_for("index"))
 
@@ -246,7 +246,6 @@ def admin_panel():
 @app.route("/admin/update-price/<int:product_id>", methods=["POST"])
 @login_required
 def update_price(product_id):
-    """Admin: Update selling price for a product."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -254,7 +253,6 @@ def update_price(product_id):
     new_price = float(request.form["selling_price"])
     product.selling_price = new_price
 
-    # Auto-calculate discount
     if product.dell_mrp and product.dell_mrp > 0:
         product.discount_percent = round((1 - new_price / product.dell_mrp) * 100, 1)
 
@@ -266,7 +264,6 @@ def update_price(product_id):
 @app.route("/admin/update-stock/<int:product_id>", methods=["POST"])
 @login_required
 def update_stock(product_id):
-    """Admin: Update stock status."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -274,14 +271,12 @@ def update_stock(product_id):
     product.stock_quantity = int(request.form["quantity"])
     product.in_stock = product.stock_quantity > 0
     db.session.commit()
-
     return redirect(url_for("admin_panel"))
 
 
 @app.route("/admin/upload-image/<int:product_id>", methods=["POST"])
 @login_required
 def upload_image(product_id):
-    """Admin: Upload product image."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -292,22 +287,17 @@ def upload_image(product_id):
         return redirect(url_for("admin_panel"))
 
     file = request.files["image"]
-
     if file.filename == "":
         flash("No file selected!", "error")
         return redirect(url_for("admin_panel"))
 
     if file and allowed_file(file.filename):
         ext = file.filename.rsplit(".", 1)[1].lower()
-        filename = f"product_{product_id}.{ext}"
-        filename = secure_filename(filename)
-
+        filename = secure_filename(f"product_{product_id}.{ext}")
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(filepath)
-
         product.image_url = url_for("static", filename=f"images/products/{filename}")
         db.session.commit()
-
         flash(f"Image uploaded for {product.name}!", "success")
     else:
         flash("Invalid file type! Use PNG, JPG, JPEG, WEBP, or GIF.", "error")
@@ -318,17 +308,7 @@ def upload_image(product_id):
 @app.route("/admin/upload-xlsx", methods=["POST"])
 @login_required
 def upload_xlsx():
-    """Admin: Bulk import products from an Excel (.xlsx) file.
-
-    Expected columns:
-        name, category, dell_series, processor, ram, storage, display,
-        graphics, os, weight, dell_mrp, selling_price, stock_quantity, image_url
-
-    - 'name' and 'selling_price' are required.
-    - 'category' should be: laptop, desktop, or all-in-one.
-    - If a product with the same name already exists, it will be UPDATED.
-    - If it doesn't exist, a new product will be CREATED.
-    """
+    """Admin: Bulk import products from Excel."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -337,23 +317,14 @@ def upload_xlsx():
         return redirect(url_for("admin_panel"))
 
     file = request.files["xlsx_file"]
-
-    if file.filename == "":
-        flash("No file selected!", "error")
-        return redirect(url_for("admin_panel"))
-
-    if not file.filename.lower().endswith((".xlsx", ".xls")):
+    if file.filename == "" or not file.filename.lower().endswith((".xlsx", ".xls")):
         flash("Invalid file! Please upload an .xlsx or .xls file.", "error")
         return redirect(url_for("admin_panel"))
 
     try:
-        # Read Excel file with pandas
         df = pd.read_excel(file, engine="openpyxl")
-
-        # Normalize column names (lowercase, strip spaces)
         df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
 
-        # Validate required columns
         if "name" not in df.columns or "selling_price" not in df.columns:
             flash("Excel must have at least 'name' and 'selling_price' columns!", "error")
             return redirect(url_for("admin_panel"))
@@ -364,12 +335,9 @@ def upload_xlsx():
         for _, row in df.iterrows():
             name = str(row.get("name", "")).strip()
             if not name:
-                continue  # Skip empty rows
+                continue
 
-            # Check if product already exists
             existing = Product.query.filter_by(name=name).first()
-
-            # Prepare product data
             product_data = {
                 "name": name,
                 "category": str(row.get("category", "laptop")).strip().lower(),
@@ -388,7 +356,6 @@ def upload_xlsx():
                 "in_stock": True,
             }
 
-            # Auto-calculate discount
             if product_data["dell_mrp"] > 0:
                 product_data["discount_percent"] = round(
                     (1 - product_data["selling_price"] / product_data["dell_mrp"]) * 100, 1
@@ -401,8 +368,7 @@ def upload_xlsx():
                     setattr(existing, key, value)
                 updated += 1
             else:
-                product = Product(**product_data)
-                db.session.add(product)
+                db.session.add(Product(**product_data))
                 added += 1
 
         db.session.commit()
@@ -417,7 +383,6 @@ def upload_xlsx():
 @app.route("/admin/download-template")
 @login_required
 def download_template():
-    """Admin: Download a sample Excel template for product import."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -454,7 +419,6 @@ def download_template():
 @app.route("/admin/add-product", methods=["POST"])
 @login_required
 def add_product():
-    """Admin: Manually add a new product."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -479,7 +443,6 @@ def add_product():
 
     db.session.add(product)
     db.session.commit()
-
     flash(f"Product '{product.name}' added successfully!", "success")
     return redirect(url_for("admin_panel"))
 
@@ -487,33 +450,108 @@ def add_product():
 @app.route("/admin/delete-product/<int:product_id>", methods=["POST"])
 @login_required
 def delete_product(product_id):
-    """Admin: Delete a product."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
     product = Product.query.get_or_404(product_id)
     db.session.delete(product)
     db.session.commit()
-
     flash(f"Product '{product.name}' deleted.", "success")
     return redirect(url_for("admin_panel"))
 
 
-
-
 # ==========================================
-# SERVICE REQUEST CHATBOT ROUTES
+# SERVICE CHATBOT ROUTES
 # ==========================================
 
-# Path to the service parts Excel file
-PARTS_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "data", "service_parts.xlsx")
+PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
+
+
+def _create_default_parts_excel():
+    """Auto-generate sample service_parts.xlsx if missing or corrupted."""
+    parts = [
+        # Inspiron 15 3520
+        ("Dell Inspiron 15 3520", "Screen/Display", "LCD-3520", 4500, 800),
+        ("Dell Inspiron 15 3520", "Keyboard", "KB-3520", 1800, 500),
+        ("Dell Inspiron 15 3520", "Battery", "BAT-3520", 3200, 400),
+        ("Dell Inspiron 15 3520", "Motherboard", "MB-3520", 12500, 1500),
+        ("Dell Inspiron 15 3520", "RAM (8GB DDR4)", "RAM8-3520", 2200, 300),
+        ("Dell Inspiron 15 3520", "SSD (512GB)", "SSD512-3520", 3500, 400),
+        ("Dell Inspiron 15 3520", "Charger/Adapter", "CHG-3520", 1500, 0),
+        ("Dell Inspiron 15 3520", "Touchpad", "TP-3520", 1200, 600),
+        ("Dell Inspiron 15 3520", "Fan/Cooling", "FAN-3520", 900, 500),
+        ("Dell Inspiron 15 3520", "Hinge", "HNG-3520", 1100, 700),
+        # Inspiron 14 5430
+        ("Dell Inspiron 14 5430", "Screen/Display", "LCD-5430", 6500, 800),
+        ("Dell Inspiron 14 5430", "Keyboard", "KB-5430", 2200, 500),
+        ("Dell Inspiron 14 5430", "Battery", "BAT-5430", 4000, 400),
+        ("Dell Inspiron 14 5430", "Motherboard", "MB-5430", 16000, 1500),
+        ("Dell Inspiron 14 5430", "RAM (16GB LPDDR5)", "RAM16-5430", 4500, 300),
+        ("Dell Inspiron 14 5430", "SSD (512GB)", "SSD512-5430", 3500, 400),
+        ("Dell Inspiron 14 5430", "Charger/Adapter", "CHG-5430", 1800, 0),
+        ("Dell Inspiron 14 5430", "Touchpad", "TP-5430", 1500, 600),
+        ("Dell Inspiron 14 5430", "Fan/Cooling", "FAN-5430", 1100, 500),
+        ("Dell Inspiron 14 5430", "Hinge", "HNG-5430", 1300, 700),
+        # XPS 13 9340
+        ("Dell XPS 13 9340", "Screen/Display", "LCD-9340", 12000, 1000),
+        ("Dell XPS 13 9340", "Keyboard", "KB-9340", 3500, 600),
+        ("Dell XPS 13 9340", "Battery", "BAT-9340", 5500, 500),
+        ("Dell XPS 13 9340", "Motherboard", "MB-9340", 28000, 2000),
+        ("Dell XPS 13 9340", "RAM (16GB LPDDR5x)", "RAM16-9340", 5500, 300),
+        ("Dell XPS 13 9340", "SSD (512GB NVMe)", "SSD512-9340", 4500, 400),
+        ("Dell XPS 13 9340", "Charger/Adapter (USB-C)", "CHG-9340", 2500, 0),
+        ("Dell XPS 13 9340", "Touchpad", "TP-9340", 2000, 700),
+        ("Dell XPS 13 9340", "Fan/Cooling", "FAN-9340", 1500, 600),
+        ("Dell XPS 13 9340", "Speaker", "SPK-9340", 1200, 500),
+        # XPS 15 9530
+        ("Dell XPS 15 9530", "Screen/Display (OLED)", "LCD-9530", 18000, 1200),
+        ("Dell XPS 15 9530", "Keyboard", "KB-9530", 3800, 600),
+        ("Dell XPS 15 9530", "Battery", "BAT-9530", 6500, 500),
+        ("Dell XPS 15 9530", "Motherboard", "MB-9530", 35000, 2500),
+        ("Dell XPS 15 9530", "RAM (32GB DDR5)", "RAM32-9530", 8000, 300),
+        ("Dell XPS 15 9530", "SSD (1TB NVMe)", "SSD1T-9530", 7500, 400),
+        ("Dell XPS 15 9530", "Charger/Adapter", "CHG-9530", 2800, 0),
+        ("Dell XPS 15 9530", "GPU (RTX 4060)", "GPU-9530", 22000, 2000),
+        ("Dell XPS 15 9530", "Fan/Cooling", "FAN-9530", 1800, 600),
+        ("Dell XPS 15 9530", "Hinge", "HNG-9530", 1500, 800),
+        # Latitude 5540
+        ("Dell Latitude 5540", "Screen/Display", "LCD-5540", 5500, 800),
+        ("Dell Latitude 5540", "Keyboard", "KB-5540", 2000, 500),
+        ("Dell Latitude 5540", "Battery", "BAT-5540", 3800, 400),
+        ("Dell Latitude 5540", "Motherboard", "MB-5540", 18000, 1500),
+        ("Dell Latitude 5540", "RAM (16GB DDR4)", "RAM16-5540", 3500, 300),
+        ("Dell Latitude 5540", "SSD (256GB)", "SSD256-5540", 2500, 400),
+        ("Dell Latitude 5540", "Charger/Adapter", "CHG-5540", 1600, 0),
+        ("Dell Latitude 5540", "Touchpad", "TP-5540", 1400, 600),
+        ("Dell Latitude 5540", "Fan/Cooling", "FAN-5540", 1000, 500),
+        ("Dell Latitude 5540", "Webcam Module", "CAM-5540", 800, 400),
+        # Vostro 3520
+        ("Dell Vostro 3520", "Screen/Display", "LCD-V3520", 4000, 800),
+        ("Dell Vostro 3520", "Keyboard", "KB-V3520", 1500, 500),
+        ("Dell Vostro 3520", "Battery", "BAT-V3520", 2800, 400),
+        ("Dell Vostro 3520", "Motherboard", "MB-V3520", 10000, 1500),
+        ("Dell Vostro 3520", "RAM (8GB DDR4)", "RAM8-V3520", 2000, 300),
+        ("Dell Vostro 3520", "SSD (256GB)", "SSD256-V3520", 2200, 400),
+        ("Dell Vostro 3520", "Charger/Adapter", "CHG-V3520", 1200, 0),
+        ("Dell Vostro 3520", "Touchpad", "TP-V3520", 1000, 600),
+        ("Dell Vostro 3520", "Fan/Cooling", "FAN-V3520", 800, 500),
+        ("Dell Vostro 3520", "Hinge", "HNG-V3520", 900, 700),
+    ]
+
+    df = pd.DataFrame(parts, columns=["model", "part", "part_code", "price", "labour_charge"])
+    df.to_excel(PARTS_EXCEL_PATH, index=False, engine="openpyxl")
+    print(f"Auto-created service_parts.xlsx with {len(df)} parts")
+    return df
 
 
 def load_parts_data():
-    """Load service parts from Excel file."""
-    if os.path.exists(PARTS_EXCEL_PATH):
+    """Load service parts from Excel. Auto-creates file if missing or corrupted."""
+    try:
+        if not os.path.exists(PARTS_EXCEL_PATH) or os.path.getsize(PARTS_EXCEL_PATH) < 100:
+            return _create_default_parts_excel()
         return pd.read_excel(PARTS_EXCEL_PATH, engine="openpyxl")
-    return pd.DataFrame()
+    except Exception:
+        return _create_default_parts_excel()
 
 
 @app.route("/service")
@@ -550,19 +588,10 @@ def service_parts():
 def service_submit():
     """API: Submit a service request."""
     data = request.get_json()
-
     if not data:
         return jsonify({"success": False, "error": "No data provided"}), 400
 
-    # Generate a simple request ID
-    import random
     request_id = f"SRV-{random.randint(10000, 99999)}"
-
-    # Store in a JSON file (simple storage for now)
-    service_requests_path = os.path.join(os.path.dirname(__file__), "data", "service_requests.json")
-
-    import json
-    from datetime import datetime
 
     service_request = {
         "request_id": request_id,
@@ -576,18 +605,18 @@ def service_submit():
         "created_at": datetime.now().isoformat(),
     }
 
-    # Load existing requests or create new list
+    # Save to JSON file
+    requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
     existing = []
-    if os.path.exists(service_requests_path):
-        with open(service_requests_path, "r") as f:
-            try:
+    if os.path.exists(requests_path):
+        try:
+            with open(requests_path, "r") as f:
                 existing = json.load(f)
-            except json.JSONDecodeError:
-                existing = []
+        except (json.JSONDecodeError, IOError):
+            existing = []
 
     existing.append(service_request)
-
-    with open(service_requests_path, "w") as f:
+    with open(requests_path, "w") as f:
         json.dump(existing, f, indent=2)
 
     return jsonify({"success": True, "request_id": request_id})
@@ -632,7 +661,7 @@ def api_products():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()  # Create tables
+        db.create_all()
 
         # Create default admin user
         if not User.query.filter_by(email="admin@dellstore.com").first():
