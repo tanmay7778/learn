@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - Dell Store{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-cog"></i> Admin Panel</h2>
+    <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="fas fa-plus"></i> Add Product
+        </button>
+        <form action="{{ url_for('trigger_scrape') }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-sync"></i> Scrape Dell
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- PRODUCT TABLE -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Product Management ({{ products|length }} products)</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 admin-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Image</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Dell MRP</th>
+                    <th>Your Price</th>
+                    <th>Stock</th>
+                    <th>Upload Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        <img src="{{ product.image_url or 'https://placehold.co/60x60/cccccc/666666?text=No+Img' }}"
+                             alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: contain;">
+                    </td>
+                    <td>
+                        <strong>{{ product.name[:30] }}</strong>
+                        <br><small class="text-muted">{{ product.dell_series or '' }} | {{ product.processor[:25] if product.processor else '' }}</small>
+                    </td>
+                    <td><span class="badge bg-info">{{ product.category }}</span></td>
+                    <td>&#8377;{{ "{:,.0f}".format(product.dell_mrp or 0) }}</td>
+                    <td>
+                        <form action="{{ url_for('update_price', product_id=product.id) }}" method="POST" class="d-flex">
+                            <input type="number" name="selling_price" value="{{ product.selling_price|int }}"
+                                   class="form-control form-control-sm" style="width: 110px;" step="100">
+                            <button type="submit" class="btn btn-sm btn-primary ms-1"><i class="fas fa-check"></i></button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('update_stock', product_id=product.id) }}" method="POST" class="d-flex">
+                            <input type="number" name="quantity" value="{{ product.stock_quantity }}"
+                                   class="form-control form-control-sm" style="width: 70px;">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary ms-1"><i class="fas fa-check"></i></button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('upload_image', product_id=product.id) }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center">
+                            <input type="file" name="image" accept=".png,.jpg,.jpeg,.webp,.gif"
+                                   class="form-control form-control-sm" style="width: 150px;">
+                            <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fas fa-upload"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <p class="text-muted mb-2">No products yet.</p>
+                        <p>Click "Add Product" or "Scrape Dell" to get started.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ADD PRODUCT MODAL -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add New Product</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('add_product') }}" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Product Name *</label>
+                            <input type="text" name="name" class="form-control" required placeholder="e.g. Dell Inspiron 15 3520">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Category *</label>
+                            <select name="category" class="form-select" required>
+                                <option value="laptop">Laptop</option>
+                                <option value="desktop">Desktop</option>
+                                <option value="all-in-one">All-in-One</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Series</label>
+                            <select name="dell_series" class="form-select">
+                                <option value="Inspiron">Inspiron</option>
+                                <option value="XPS">XPS</option>
+                                <option value="Latitude">Latitude</option>
+                                <option value="Vostro">Vostro</option>
+                                <option value="OptiPlex">OptiPlex</option>
+                                <option value="Precision">Precision</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Processor</label>
+                            <input type="text" name="processor" class="form-control" placeholder="e.g. 13th Gen Intel Core i5-1345U">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">RAM</label>
+                            <input type="text" name="ram" class="form-control" placeholder="e.g. 16 GB DDR5">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Storage</label>
+                            <input type="text" name="storage" class="form-control" placeholder="e.g. 512 GB SSD">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Display</label>
+                            <input type="text" name="display" class="form-control" placeholder="e.g. 15.6 inch FHD">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Graphics</label>
+                            <input type="text" name="graphics" class="form-control" placeholder="e.g. Intel Iris Xe">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">OS</label>
+                            <input type="text" name="os" class="form-control" placeholder="e.g. Windows 11 Home">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Dell MRP (&#8377;)</label>
+                            <input type="number" name="dell_mrp" class="form-control" step="100" placeholder="e.g. 58990">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Your Selling Price (&#8377;) *</label>
+                            <input type="number" name="selling_price" class="form-control" required step="100" placeholder="e.g. 54990">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" name="stock_quantity" class="form-control" value="10">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

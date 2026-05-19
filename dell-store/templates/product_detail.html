@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} - Dell Store{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('products', category=product.category) }}">{{ product.category.title() }}</a></li>
+        <li class="breadcrumb-item active">{{ product.name[:40] }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- Product Image -->
+    <div class="col-md-5">
+        <div class="card shadow-sm p-4">
+            <img src="{{ product.image_url or 'https://via.placeholder.com/500x400?text=Dell' }}"
+                 class="img-fluid" alt="{{ product.name }}">
+        </div>
+    </div>
+
+    <!-- Product Info -->
+    <div class="col-md-7">
+        <h2>{{ product.name }}</h2>
+        <p class="text-muted">{{ product.dell_series or '' }} Series | {{ product.category.title() }}</p>
+
+        <!-- Pricing -->
+        <div class="bg-light p-3 rounded mb-3">
+            <h3 class="text-primary mb-0">&#8377;{{ "{:,.0f}".format(product.selling_price) }}</h3>
+            {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
+                <span class="text-muted text-decoration-line-through">MRP: &#8377;{{ "{:,.0f}".format(product.dell_mrp) }}</span>
+                <span class="badge bg-success ms-2">Save &#8377;{{ "{:,.0f}".format(product.dell_mrp - product.selling_price) }}</span>
+            {% endif %}
+            <p class="small text-muted mt-1 mb-0">Inclusive of all taxes | EMI available</p>
+        </div>
+
+        <!-- Specs -->
+        <h5>Specifications</h5>
+        <table class="table table-sm">
+            {% if product.processor %}<tr><td><strong>Processor</strong></td><td>{{ product.processor }}</td></tr>{% endif %}
+            {% if product.ram %}<tr><td><strong>RAM</strong></td><td>{{ product.ram }}</td></tr>{% endif %}
+            {% if product.storage %}<tr><td><strong>Storage</strong></td><td>{{ product.storage }}</td></tr>{% endif %}
+            {% if product.display %}<tr><td><strong>Display</strong></td><td>{{ product.display }}</td></tr>{% endif %}
+            {% if product.graphics %}<tr><td><strong>Graphics</strong></td><td>{{ product.graphics }}</td></tr>{% endif %}
+            {% if product.os %}<tr><td><strong>OS</strong></td><td>{{ product.os }}</td></tr>{% endif %}
+            {% if product.weight %}<tr><td><strong>Weight</strong></td><td>{{ product.weight }}</td></tr>{% endif %}
+        </table>
+
+        <!-- Add to Cart -->
+        <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST">
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-shopping-cart"></i> Add to Cart
+            </button>
+        </form>
+
+        {% if product.in_stock %}
+            <p class="text-success mt-2"><i class="fas fa-check-circle"></i> In Stock ({{ product.stock_quantity }} units)</p>
+        {% else %}
+            <p class="text-danger mt-2"><i class="fas fa-times-circle"></i> Out of Stock</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- REVIEWS SECTION -->
+<div class="mt-5">
+    <h4>Customer Reviews ({{ reviews|length }})</h4>
+    <hr>
+    {% for review in reviews %}
+    <div class="card mb-2">
+        <div class="card-body">
+            <div class="d-flex justify-content-between">
+                <strong>{{ review.user.name }}</strong>
+                <span class="text-warning">
+                    {% for i in range(review.rating) %}<i class="fas fa-star"></i>{% endfor %}
+                    {% for i in range(5 - review.rating) %}<i class="far fa-star"></i>{% endfor %}
+                </span>
+            </div>
+            <p class="mt-2 mb-0">{{ review.comment }}</p>
+            <small class="text-muted">{{ review.created_at.strftime('%d %b %Y') }}</small>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No reviews yet. Be the first to review!</p>
+    {% endfor %}
+</div>
+{% endblock %}

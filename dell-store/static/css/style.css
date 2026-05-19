@@ -1,0 +1,91 @@
+/* ====== CUSTOM CSS FOR DELL STORE ====== */
+
+:root {
+    --dell-blue: #0076CE;
+    --dell-dark: #1a1a2e;
+}
+
+/* Navbar */
+.navbar {
+    background: linear-gradient(135deg, var(--dell-blue), #004080) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--dell-blue), #003366);
+}
+
+/* Product Cards */
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.product-card .card-img-top {
+    height: 180px;
+    object-fit: contain;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--dell-blue);
+    border-color: var(--dell-blue);
+}
+
+.btn-primary:hover {
+    background-color: #005a9e;
+    border-color: #005a9e;
+}
+
+/* Footer */
+footer {
+    background: var(--dell-dark) !important;
+}
+
+/* Admin Panel */
+.admin-table input[type="number"] {
+    width: 120px;
+}
+
+/* Cart Badge */
+.cart-badge {
+    position: relative;
+    top: -8px;
+    right: 5px;
+    font-size: 0.7rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+    }
+    .hero-section img {
+        margin-top: 20px;
+    }
+    .product-card .card-img-top {
+        height: 140px;
+    }
+}
+
+/* Breadcrumb */
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--dell-blue);
+}
+
+/* Card Shadows */
+.card {
+    border-radius: 10px;
+}
+
+/* Form Controls */
+.form-control:focus {
+    border-color: var(--dell-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 118, 206, 0.25);
+}
