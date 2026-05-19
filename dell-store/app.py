@@ -499,6 +499,100 @@ def delete_product(product_id):
     return redirect(url_for("admin_panel"))
 
 
+
+
+# ==========================================
+# SERVICE REQUEST CHATBOT ROUTES
+# ==========================================
+
+# Path to the service parts Excel file
+PARTS_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "data", "service_parts.xlsx")
+
+
+def load_parts_data():
+    """Load service parts from Excel file."""
+    if os.path.exists(PARTS_EXCEL_PATH):
+        return pd.read_excel(PARTS_EXCEL_PATH, engine="openpyxl")
+    return pd.DataFrame()
+
+
+@app.route("/service")
+def service_page():
+    """Service request chatbot page."""
+    df = load_parts_data()
+    models = sorted(df["model"].unique().tolist()) if not df.empty else []
+    return render_template("service.html", models=models)
+
+
+@app.route("/service/parts")
+def service_parts():
+    """API: Get parts list for a specific model."""
+    model = request.args.get("model", "")
+    df = load_parts_data()
+
+    if df.empty or not model:
+        return jsonify({"parts": []})
+
+    model_parts = df[df["model"] == model]
+    parts = [
+        {
+            "part": row["part"],
+            "part_code": row["part_code"],
+            "price": float(row["price"]),
+            "labour_charge": float(row["labour_charge"]),
+        }
+        for _, row in model_parts.iterrows()
+    ]
+    return jsonify({"parts": parts})
+
+
+@app.route("/service/submit", methods=["POST"])
+def service_submit():
+    """API: Submit a service request."""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"success": False, "error": "No data provided"}), 400
+
+    # Generate a simple request ID
+    import random
+    request_id = f"SRV-{random.randint(10000, 99999)}"
+
+    # Store in a JSON file (simple storage for now)
+    service_requests_path = os.path.join(os.path.dirname(__file__), "data", "service_requests.json")
+
+    import json
+    from datetime import datetime
+
+    service_request = {
+        "request_id": request_id,
+        "customer_name": data.get("name", ""),
+        "customer_phone": data.get("phone", ""),
+        "issue_description": data.get("issue", ""),
+        "model": data.get("model", ""),
+        "parts": data.get("parts", []),
+        "total_estimate": data.get("total_estimate", 0),
+        "status": "pending",
+        "created_at": datetime.now().isoformat(),
+    }
+
+    # Load existing requests or create new list
+    existing = []
+    if os.path.exists(service_requests_path):
+        with open(service_requests_path, "r") as f:
+            try:
+                existing = json.load(f)
+            except json.JSONDecodeError:
+                existing = []
+
+    existing.append(service_request)
+
+    with open(service_requests_path, "w") as f:
+        json.dump(existing, f, indent=2)
+
+    return jsonify({"success": True, "request_id": request_id})
+
+
 # ==========================================
 # API ENDPOINTS (for AJAX calls)
 # ==========================================

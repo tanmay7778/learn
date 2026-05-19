@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Service Request - Dell Store{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex align-items-center">
+                <i class="fas fa-robot fa-lg me-2"></i>
+                <h5 class="mb-0">Service Assistant</h5>
+                <span class="badge bg-success ms-auto">Online</span>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div class="card-body" id="chatArea" style="height: 450px; overflow-y: auto; background: #f8f9fa;">
+                <!-- Bot welcome message -->
+                <div class="d-flex mb-3">
+                    <div class="bot-avatar me-2">
+                        <i class="fas fa-robot text-primary fa-lg"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
+                        <p class="mb-0">Hello! I'm your Dell Service Assistant. I can help you get a repair cost estimate.</p>
+                        <p class="mb-0 mt-2">Please select your <strong>laptop model</strong> below to get started.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="card-footer bg-white p-3">
+                <!-- Step 1: Model Selection -->
+                <div id="step1">
+                    <label class="form-label fw-bold">Step 1: Select your Dell model</label>
+                    <select id="modelSelect" class="form-select">
+                        <option value="">-- Choose a model --</option>
+                        {% for model in models %}
+                        <option value="{{ model }}">{{ model }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-primary mt-2" onclick="selectModel()">Next <i class="fas fa-arrow-right"></i></button>
+                </div>
+
+                <!-- Step 2: Part Selection (hidden initially) -->
+                <div id="step2" style="display: none;">
+                    <label class="form-label fw-bold">Step 2: What part needs repair/replacement?</label>
+                    <select id="partSelect" class="form-select">
+                        <option value="">-- Choose a part --</option>
+                    </select>
+                    <button class="btn btn-primary mt-2" onclick="selectPart()">Get Estimate <i class="fas fa-calculator"></i></button>
+                    <button class="btn btn-outline-secondary mt-2 ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Start Over</button>
+                </div>
+
+                <!-- Step 3: Result + Service Form (hidden initially) -->
+                <div id="step3" style="display: none;">
+                    <button class="btn btn-success mt-2" onclick="submitServiceRequest()"><i class="fas fa-paper-plane"></i> Submit Service Request</button>
+                    <button class="btn btn-outline-primary mt-2 ms-2" onclick="addAnotherPart()"><i class="fas fa-plus"></i> Add Another Part</button>
+                    <button class="btn btn-outline-secondary mt-2 ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Start Over</button>
+                </div>
+
+                <!-- Step 4: Contact Form (hidden initially) -->
+                <div id="step4" style="display: none;">
+                    <form id="serviceForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <input type="text" id="custName" class="form-control" placeholder="Your Name" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="tel" id="custPhone" class="form-control" placeholder="Phone Number" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <textarea id="custIssue" class="form-control" rows="2" placeholder="Describe the issue briefly (optional)"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="confirmRequest()"><i class="fas fa-check"></i> Confirm Request</button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #chatArea::-webkit-scrollbar { width: 6px; }
+    #chatArea::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    .bot-msg { animation: fadeIn 0.3s ease-in; }
+    .user-msg { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+    let selectedModel = "";
+    let selectedParts = [];
+    let totalEstimate = 0;
+
+    function addBotMessage(html) {
+        const chatArea = document.getElementById("chatArea");
+        const msg = `
+            <div class="d-flex mb-3 bot-msg">
+                <div class="bot-avatar me-2"><i class="fas fa-robot text-primary fa-lg"></i></div>
+                <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">${html}</div>
+            </div>`;
+        chatArea.innerHTML += msg;
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function addUserMessage(text) {
+        const chatArea = document.getElementById("chatArea");
+        const msg = `
+            <div class="d-flex mb-3 justify-content-end user-msg">
+                <div class="bg-primary text-white p-3 rounded shadow-sm" style="max-width: 80%;">${text}</div>
+            </div>`;
+        chatArea.innerHTML += msg;
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function selectModel() {
+        const select = document.getElementById("modelSelect");
+        selectedModel = select.value;
+
+        if (!selectedModel) {
+            alert("Please select a model!");
+            return;
+        }
+
+        addUserMessage(`My laptop model is: <strong>${selectedModel}</strong>`);
+
+        // Fetch parts for this model
+        fetch(`/service/parts?model=${encodeURIComponent(selectedModel)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.parts && data.parts.length > 0) {
+                    addBotMessage(`Got it! I found <strong>${data.parts.length} serviceable parts</strong> for ${selectedModel}.<br><br>Which part needs repair or replacement?`);
+
+                    // Populate parts dropdown
+                    const partSelect = document.getElementById("partSelect");
+                    partSelect.innerHTML = '<option value="">-- Choose a part --</option>';
+                    data.parts.forEach(part => {
+                        partSelect.innerHTML += `<option value="${part.part}" data-price="${part.price}" data-labour="${part.labour_charge}">${part.part}</option>`;
+                    });
+
+                    document.getElementById("step1").style.display = "none";
+                    document.getElementById("step2").style.display = "block";
+                } else {
+                    addBotMessage("Sorry, I don't have parts data for this model yet. Please contact us directly.");
+                }
+            });
+    }
+
+    function selectPart() {
+        const select = document.getElementById("partSelect");
+        const partName = select.value;
+
+        if (!partName) {
+            alert("Please select a part!");
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const price = parseFloat(option.dataset.price);
+        const labour = parseFloat(option.dataset.labour);
+        const total = price + labour;
+
+        addUserMessage(`Part: <strong>${partName}</strong>`);
+
+        selectedParts.push({ part: partName, price: price, labour: labour, total: total });
+        totalEstimate += total;
+
+        let html = `<strong>Estimated Cost for ${partName}:</strong><br><br>
+            <table class="table table-sm table-bordered mb-2" style="font-size: 0.9rem;">
+                <tr><td>Part Cost</td><td class="text-end">&#8377;${price.toLocaleString()}</td></tr>
+                <tr><td>Labour Charge</td><td class="text-end">&#8377;${labour.toLocaleString()}</td></tr>
+                <tr class="table-primary fw-bold"><td>Total</td><td class="text-end">&#8377;${total.toLocaleString()}</td></tr>
+            </table>`;
+
+        if (selectedParts.length > 1) {
+            html += `<p class="mb-0"><strong>Grand Total (${selectedParts.length} parts):</strong> &#8377;${totalEstimate.toLocaleString()}</p>`;
+        }
+
+        html += `<p class="mb-0 mt-2 text-muted small">*Prices are approximate. Final cost may vary after inspection.</p>`;
+
+        addBotMessage(html);
+
+        addBotMessage("Would you like to <strong>add another part</strong>, <strong>submit a service request</strong>, or <strong>start over</strong>?");
+
+        document.getElementById("step2").style.display = "none";
+        document.getElementById("step3").style.display = "block";
+    }
+
+    function addAnotherPart() {
+        document.getElementById("step3").style.display = "none";
+        document.getElementById("step2").style.display = "block";
+        addUserMessage("I want to add another part.");
+        addBotMessage("Sure! Select the next part that needs repair.");
+    }
+
+    function submitServiceRequest() {
+        addUserMessage("I'd like to submit a service request.");
+
+        let summary = `<strong>Service Request Summary:</strong><br><br>
+            <strong>Model:</strong> ${selectedModel}<br>
+            <strong>Parts:</strong><br>`;
+        selectedParts.forEach(p => {
+            summary += `&nbsp;&nbsp;• ${p.part} — &#8377;${p.total.toLocaleString()}<br>`;
+        });
+        summary += `<br><strong>Estimated Total: &#8377;${totalEstimate.toLocaleString()}</strong>`;
+        summary += `<br><br>Please provide your contact details below to book the service.`;
+
+        addBotMessage(summary);
+
+        document.getElementById("step3").style.display = "none";
+        document.getElementById("step4").style.display = "block";
+    }
+
+    function confirmRequest() {
+        const name = document.getElementById("custName").value;
+        const phone = document.getElementById("custPhone").value;
+        const issue = document.getElementById("custIssue").value;
+
+        if (!name || !phone) {
+            alert("Please provide your name and phone number!");
+            return;
+        }
+
+        addUserMessage(`Name: ${name}<br>Phone: ${phone}${issue ? '<br>Issue: ' + issue : ''}`);
+
+        // Send to backend
+        fetch("/service/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: name,
+                phone: phone,
+                issue: issue,
+                model: selectedModel,
+                parts: selectedParts,
+                total_estimate: totalEstimate
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                addBotMessage(`<div class="text-success">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                    <strong>Service request submitted!</strong><br><br>
+                    Request ID: <strong>#${data.request_id}</strong><br>
+                    We'll contact you at <strong>${phone}</strong> within 24 hours to schedule the repair.<br><br>
+                    <em>Thank you for choosing our store!</em>
+                </div>`);
+            } else {
+                addBotMessage("Something went wrong. Please try again or call us directly.");
+            }
+        });
+
+        document.getElementById("step4").style.display = "none";
+    }
+
+    function resetChat() {
+        selectedModel = "";
+        selectedParts = [];
+        totalEstimate = 0;
+
+        document.getElementById("chatArea").innerHTML = `
+            <div class="d-flex mb-3">
+                <div class="bot-avatar me-2"><i class="fas fa-robot text-primary fa-lg"></i></div>
+                <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
+                    <p class="mb-0">Hello! I'm your Dell Service Assistant. I can help you get a repair cost estimate.</p>
+                    <p class="mb-0 mt-2">Please select your <strong>laptop model</strong> below to get started.</p>
+                </div>
+            </div>`;
+
+        document.getElementById("step1").style.display = "block";
+        document.getElementById("step2").style.display = "none";
+        document.getElementById("step3").style.display = "none";
+        document.getElementById("step4").style.display = "none";
+    }
+</script>
+{% endblock %}
