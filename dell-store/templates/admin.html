@@ -4,15 +4,40 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-cog"></i> Admin Panel</h2>
-    <div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-            <i class="fas fa-plus"></i> Add Product
-        </button>
-        <form action="{{ url_for('trigger_scrape') }}" method="POST" class="d-inline">
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-sync"></i> Scrape Dell
-            </button>
-        </form>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="fas fa-plus"></i> Add Product
+    </button>
+</div>
+
+<!-- EXCEL UPLOAD SECTION -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="fas fa-file-excel"></i> Import Products from Excel (.xlsx)</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <form action="{{ url_for('upload_xlsx') }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+                    <input type="file" name="xlsx_file" accept=".xlsx,.xls" class="form-control" required>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-5">
+                <a href="{{ url_for('download_template') }}" class="btn btn-outline-success">
+                    <i class="fas fa-download"></i> Download Template
+                </a>
+                <small class="text-muted ms-2">Fill this template, then upload.</small>
+            </div>
+        </div>
+        <div class="mt-2">
+            <small class="text-muted">
+                <strong>Required columns:</strong> name, selling_price |
+                <strong>Optional:</strong> category, dell_series, processor, ram, storage, display, graphics, os, weight, dell_mrp, stock_quantity, image_url
+                | If a product with same name exists, it will be <strong>updated</strong>.
+            </small>
+        </div>
     </div>
 </div>
 
@@ -32,6 +57,7 @@
                     <th>Your Price</th>
                     <th>Stock</th>
                     <th>Upload Image</th>
+                    <th>Delete</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,12 +94,18 @@
                             <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fas fa-upload"></i></button>
                         </form>
                     </td>
+                    <td>
+                        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST"
+                              onsubmit="return confirm('Delete this product?')">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="text-center py-4">
+                    <td colspan="8" class="text-center py-4">
                         <p class="text-muted mb-2">No products yet.</p>
-                        <p>Click "Add Product" or "Scrape Dell" to get started.</p>
+                        <p>Upload an Excel file above or click "Add Product" to get started.</p>
                     </td>
                 </tr>
                 {% endfor %}
