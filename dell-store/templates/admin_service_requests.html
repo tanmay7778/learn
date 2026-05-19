@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Admin - Service Requests{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-wrench-adjustable"></i> Service Requests</h2>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Admin
+        </a>
+    </div>
+
+    {% if requests %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Request ID</th>
+                    <th>Customer</th>
+                    <th>Model</th>
+                    <th>Parts</th>
+                    <th>Estimate</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td><strong>{{ req.request_id }}</strong></td>
+                    <td>
+                        {{ req.customer_name }}<br>
+                        <small class="text-muted"><i class="bi bi-telephone"></i> {{ req.customer_phone }}</small>
+                        {% if req.issue_description %}
+                        <br><small class="text-muted"><i class="bi bi-chat-text"></i> {{ req.issue_description }}</small>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ req.model }}</small></td>
+                    <td>
+                        {% for part in req.parts %}
+                        <div class="small">
+                            {{ part.part }}
+                            <span class="text-success">₹{{ "{:,.0f}".format(part.price) }}</span>
+                            + ₹{{ "{:,.0f}".format(part.labour_charge) }} labour
+                        </div>
+                        {% endfor %}
+                    </td>
+                    <td><strong>₹{{ "{:,.0f}".format(req.total_estimate) }}</strong></td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif req.status == 'in_progress' %}
+                        <span class="badge bg-info">In Progress</span>
+                        {% elif req.status == 'completed' %}
+                        <span class="badge bg-success">Completed</span>
+                        {% elif req.status == 'cancelled' %}
+                        <span class="badge bg-danger">Cancelled</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ req.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ req.created_at[:10] if req.created_at else 'N/A' }}</small></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('update_service_status', request_id=req.request_id) }}" class="d-flex gap-1">
+                            <select name="status" class="form-select form-select-sm" style="width: 120px;">
+                                <option value="pending" {{ 'selected' if req.status == 'pending' }}>Pending</option>
+                                <option value="in_progress" {{ 'selected' if req.status == 'in_progress' }}>In Progress</option>
+                                <option value="completed" {{ 'selected' if req.status == 'completed' }}>Completed</option>
+                                <option value="cancelled" {{ 'selected' if req.status == 'cancelled' }}>Cancelled</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> No service requests yet. Requests will appear here when customers submit them via the Service page.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
