@@ -1,87 +1,122 @@
 {% extends "base.html" %}
-{% block title %}Products - Dell Authorized Store{% endblock %}
+{% block title %}{{ category.replace('-', ' ').title() if category != 'all' else 'All' }} Products - Dell Store{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- SIDEBAR FILTERS -->
-    <div class="col-md-3">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5>Filters</h5>
-                <hr>
-                <h6>Category</h6>
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('products', category='all') }}"
-                       class="list-group-item {{ 'active' if category == 'all' }}">All Products</a>
-                    <a href="{{ url_for('products', category='laptop') }}"
-                       class="list-group-item {{ 'active' if category == 'laptop' }}">Laptops</a>
-                    <a href="{{ url_for('products', category='desktop') }}"
-                       class="list-group-item {{ 'active' if category == 'desktop' }}">Desktops</a>
-                    <a href="{{ url_for('products', category='all-in-one') }}"
-                       class="list-group-item {{ 'active' if category == 'all-in-one' }}">All-in-Ones</a>
-                </div>
-                <hr>
-                <h6>Sort By</h6>
-                <div class="list-group list-group-flush">
-                    <a href="{{ url_for('products', category=category, sort='price_low') }}"
-                       class="list-group-item">Price: Low to High</a>
-                    <a href="{{ url_for('products', category=category, sort='price_high') }}"
-                       class="list-group-item">Price: High to Low</a>
-                    <a href="{{ url_for('products', category=category, sort='name') }}"
-                       class="list-group-item">Name: A-Z</a>
+<div class="container py-4">
+    <div class="row">
+        <!-- SIDEBAR FILTERS -->
+        <div class="col-lg-3 mb-4">
+            <div class="card" style="border: 1px solid var(--dell-gray-300); position: sticky; top: 100px;">
+                <div class="card-body p-4">
+                    <h5 style="font-weight: 700; font-size: 1.1rem; margin-bottom: 20px;">
+                        <i class="fas fa-sliders-h me-2" style="color: var(--dell-blue);"></i> Filters
+                    </h5>
+
+                    <h6 style="font-weight: 600; font-size: 0.85rem; color: var(--dell-gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Category</h6>
+                    <div class="d-flex flex-column gap-1 mb-4">
+                        <a href="{{ url_for('products', category='all') }}"
+                           class="btn btn-sm {{ 'btn-primary' if category == 'all' else 'btn-outline-secondary' }} text-start" style="border-radius: 8px;">
+                            All Products
+                        </a>
+                        <a href="{{ url_for('products', category='laptop') }}"
+                           class="btn btn-sm {{ 'btn-primary' if category == 'laptop' else 'btn-outline-secondary' }} text-start" style="border-radius: 8px;">
+                            <i class="fas fa-laptop me-2"></i> Laptops
+                        </a>
+                        <a href="{{ url_for('products', category='desktop') }}"
+                           class="btn btn-sm {{ 'btn-primary' if category == 'desktop' else 'btn-outline-secondary' }} text-start" style="border-radius: 8px;">
+                            <i class="fas fa-desktop me-2"></i> Desktops
+                        </a>
+                        <a href="{{ url_for('products', category='all-in-one') }}"
+                           class="btn btn-sm {{ 'btn-primary' if category == 'all-in-one' else 'btn-outline-secondary' }} text-start" style="border-radius: 8px;">
+                            <i class="fas fa-tv me-2"></i> All-in-Ones
+                        </a>
+                    </div>
+
+                    <h6 style="font-weight: 600; font-size: 0.85rem; color: var(--dell-gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Sort By</h6>
+                    <div class="d-flex flex-column gap-1">
+                        <a href="{{ url_for('products', category=category, sort='price_low') }}"
+                           class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
+                            <i class="fas fa-sort-amount-down-alt me-2"></i> Price: Low → High
+                        </a>
+                        <a href="{{ url_for('products', category=category, sort='price_high') }}"
+                           class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
+                            <i class="fas fa-sort-amount-up me-2"></i> Price: High → Low
+                        </a>
+                        <a href="{{ url_for('products', category=category, sort='name') }}"
+                           class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
+                            <i class="fas fa-sort-alpha-down me-2"></i> Name: A → Z
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- PRODUCT GRID -->
-    <div class="col-md-9">
-        <!-- Search Bar -->
-        <form class="mb-4" method="GET" action="{{ url_for('products') }}">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Search Dell products..."
-                       value="{{ request.args.get('search', '') }}">
-                <input type="hidden" name="category" value="{{ category }}">
-                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+        <!-- PRODUCT GRID -->
+        <div class="col-lg-9">
+            <!-- Search Bar -->
+            <form class="mb-4" method="GET" action="{{ url_for('products') }}">
+                <div class="input-group" style="border-radius: 50px; overflow: hidden; box-shadow: var(--shadow-sm);">
+                    <span class="input-group-text border-0 bg-white ps-4">
+                        <i class="fas fa-search" style="color: var(--dell-gray-500);"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control border-0 py-3"
+                           placeholder="Search Dell laptops, desktops..."
+                           value="{{ request.args.get('search', '') }}" style="font-size: 0.95rem;">
+                    <input type="hidden" name="category" value="{{ category }}">
+                    <button class="btn btn-primary px-4" type="submit" style="border-radius: 0;">Search</button>
+                </div>
+            </form>
+
+            <!-- Results header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 style="font-weight: 700; font-size: 1.3rem; margin: 0;">
+                    {{ category.replace('-', ' ').title() if category != 'all' else 'All' }} Products
+                </h4>
+                <span class="badge bg-primary" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 50px;">
+                    {{ products|length }} results
+                </span>
             </div>
-        </form>
 
-        <h4>{{ category.replace('-', ' ').title() if category != 'all' else 'All' }} Products
-            <span class="badge bg-secondary">{{ products|length }}</span></h4>
-        <hr>
-
-        <div class="row">
-            {% for product in products %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm product-card">
-                    <img src="{{ product.image_url or 'https://via.placeholder.com/300x200?text=Dell' }}"
-                         class="card-img-top p-3" alt="{{ product.name }}" style="height: 180px; object-fit: contain;">
-                    <div class="card-body">
-                        <h6 class="card-title">{{ product.name[:45] }}...</h6>
-                        <ul class="list-unstyled small text-muted">
-                            {% if product.processor %}<li><i class="fas fa-microchip"></i> {{ product.processor[:35] }}</li>{% endif %}
-                            {% if product.ram %}<li><i class="fas fa-memory"></i> {{ product.ram }}</li>{% endif %}
-                            {% if product.storage %}<li><i class="fas fa-hdd"></i> {{ product.storage[:30] }}</li>{% endif %}
-                        </ul>
-                        <div class="mt-2">
-                            <span class="h5 text-primary">&#8377;{{ "{:,.0f}".format(product.selling_price) }}</span>
+            <!-- Product grid -->
+            <div class="row g-4">
+                {% for product in products %}
+                <div class="col-md-4 col-sm-6">
+                    <div class="product-card">
+                        <div class="card-img-wrapper">
                             {% if product.discount_percent and product.discount_percent > 0 %}
-                                <span class="badge bg-success">{{ product.discount_percent }}% off</span>
+                            <span class="discount-badge">{{ product.discount_percent|int }}% OFF</span>
                             {% endif %}
+                            <img src="{{ product.image_url or 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
+                                 alt="{{ product.name }}">
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-title">{{ product.name[:50] }}</h6>
+                            <p class="card-specs">
+                                {% if product.processor %}<i class="fas fa-microchip me-1"></i>{{ product.processor[:30] }}<br>{% endif %}
+                                {% if product.ram %}<i class="fas fa-memory me-1"></i>{{ product.ram }}{% endif %}
+                                {% if product.storage %} · {{ product.storage[:25] }}{% endif %}
+                            </p>
+                            <div class="price-section">
+                                <span class="price-current">₹{{ "{:,.0f}".format(product.selling_price) }}</span>
+                                {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
+                                <span class="price-original">₹{{ "{:,.0f}".format(product.dell_mrp) }}</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn-view">
+                                View Details <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
                         </div>
                     </div>
-                    <div class="card-footer bg-white">
-                        <a href="{{ url_for('product_detail', product_id=product.id) }}"
-                           class="btn btn-outline-primary w-100">View Details</a>
-                    </div>
                 </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-search fa-3x mb-3" style="color: var(--dell-gray-300);"></i>
+                    <h5 style="color: var(--dell-gray-700);">No products found</h5>
+                    <p style="color: var(--dell-gray-500);">Try adjusting your filters or search term.</p>
+                    <a href="{{ url_for('products') }}" class="btn btn-outline-primary mt-2">Clear Filters</a>
+                </div>
+                {% endfor %}
             </div>
-            {% else %}
-            <div class="col-12 text-center py-5">
-                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <p class="text-muted">No products found.</p>
-            </div>
-            {% endfor %}
         </div>
     </div>
 </div>

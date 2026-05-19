@@ -2,85 +2,141 @@
 {% block title %}{{ product.name }} - Dell Store{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('products', category=product.category) }}">{{ product.category.title() }}</a></li>
-        <li class="breadcrumb-item active">{{ product.name[:40] }}</li>
-    </ol>
-</nav>
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb" style="font-size: 0.9rem;">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}" style="color: var(--dell-blue); text-decoration: none;">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('products', category=product.category) }}" style="color: var(--dell-blue); text-decoration: none;">{{ product.category.title() }}</a></li>
+            <li class="breadcrumb-item active" style="color: var(--dell-gray-500);">{{ product.name[:40] }}</li>
+        </ol>
+    </nav>
 
-<div class="row">
-    <!-- Product Image -->
-    <div class="col-md-5">
-        <div class="card shadow-sm p-4">
-            <img src="{{ product.image_url or 'https://via.placeholder.com/500x400?text=Dell' }}"
-                 class="img-fluid" alt="{{ product.name }}">
-        </div>
-    </div>
-
-    <!-- Product Info -->
-    <div class="col-md-7">
-        <h2>{{ product.name }}</h2>
-        <p class="text-muted">{{ product.dell_series or '' }} Series | {{ product.category.title() }}</p>
-
-        <!-- Pricing -->
-        <div class="bg-light p-3 rounded mb-3">
-            <h3 class="text-primary mb-0">&#8377;{{ "{:,.0f}".format(product.selling_price) }}</h3>
-            {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
-                <span class="text-muted text-decoration-line-through">MRP: &#8377;{{ "{:,.0f}".format(product.dell_mrp) }}</span>
-                <span class="badge bg-success ms-2">Save &#8377;{{ "{:,.0f}".format(product.dell_mrp - product.selling_price) }}</span>
-            {% endif %}
-            <p class="small text-muted mt-1 mb-0">Inclusive of all taxes | EMI available</p>
-        </div>
-
-        <!-- Specs -->
-        <h5>Specifications</h5>
-        <table class="table table-sm">
-            {% if product.processor %}<tr><td><strong>Processor</strong></td><td>{{ product.processor }}</td></tr>{% endif %}
-            {% if product.ram %}<tr><td><strong>RAM</strong></td><td>{{ product.ram }}</td></tr>{% endif %}
-            {% if product.storage %}<tr><td><strong>Storage</strong></td><td>{{ product.storage }}</td></tr>{% endif %}
-            {% if product.display %}<tr><td><strong>Display</strong></td><td>{{ product.display }}</td></tr>{% endif %}
-            {% if product.graphics %}<tr><td><strong>Graphics</strong></td><td>{{ product.graphics }}</td></tr>{% endif %}
-            {% if product.os %}<tr><td><strong>OS</strong></td><td>{{ product.os }}</td></tr>{% endif %}
-            {% if product.weight %}<tr><td><strong>Weight</strong></td><td>{{ product.weight }}</td></tr>{% endif %}
-        </table>
-
-        <!-- Add to Cart -->
-        <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST">
-            <button type="submit" class="btn btn-primary btn-lg w-100">
-                <i class="fas fa-shopping-cart"></i> Add to Cart
-            </button>
-        </form>
-
-        {% if product.in_stock %}
-            <p class="text-success mt-2"><i class="fas fa-check-circle"></i> In Stock ({{ product.stock_quantity }} units)</p>
-        {% else %}
-            <p class="text-danger mt-2"><i class="fas fa-times-circle"></i> Out of Stock</p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- REVIEWS SECTION -->
-<div class="mt-5">
-    <h4>Customer Reviews ({{ reviews|length }})</h4>
-    <hr>
-    {% for review in reviews %}
-    <div class="card mb-2">
-        <div class="card-body">
-            <div class="d-flex justify-content-between">
-                <strong>{{ review.user.name }}</strong>
-                <span class="text-warning">
-                    {% for i in range(review.rating) %}<i class="fas fa-star"></i>{% endfor %}
-                    {% for i in range(5 - review.rating) %}<i class="far fa-star"></i>{% endfor %}
+    <div class="row g-5">
+        <!-- Product Image -->
+        <div class="col-lg-5">
+            <div class="product-detail-img">
+                <img src="{{ product.image_url or 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
+                     class="img-fluid" alt="{{ product.name }}">
+            </div>
+            {% if product.discount_percent and product.discount_percent > 0 %}
+            <div class="text-center mt-3">
+                <span class="badge" style="background: var(--dell-orange); color: white; padding: 8px 16px; font-size: 0.9rem; border-radius: 50px;">
+                    <i class="fas fa-tag me-1"></i> {{ product.discount_percent|int }}% OFF — Limited Offer
                 </span>
             </div>
-            <p class="mt-2 mb-0">{{ review.comment }}</p>
-            <small class="text-muted">{{ review.created_at.strftime('%d %b %Y') }}</small>
+            {% endif %}
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-lg-7">
+            <span style="color: var(--dell-blue); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                {{ product.dell_series or 'Dell' }} Series · {{ product.category.title() }}
+            </span>
+            <h1 style="font-weight: 800; font-size: 1.8rem; margin-top: 8px; line-height: 1.3; letter-spacing: -0.5px;">
+                {{ product.name }}
+            </h1>
+
+            <!-- Pricing Card -->
+            <div style="background: var(--dell-gray-100); border-radius: var(--radius-md); padding: 24px; margin: 24px 0; border: 1px solid var(--dell-gray-300);">
+                <div class="d-flex align-items-baseline gap-3">
+                    <span style="font-size: 2rem; font-weight: 800; color: var(--dell-blue);">₹{{ "{:,.0f}".format(product.selling_price) }}</span>
+                    {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
+                    <span style="font-size: 1.1rem; color: var(--dell-gray-500); text-decoration: line-through;">₹{{ "{:,.0f}".format(product.dell_mrp) }}</span>
+                    <span class="badge bg-success" style="font-size: 0.85rem; padding: 6px 12px; border-radius: 50px;">
+                        Save ₹{{ "{:,.0f}".format(product.dell_mrp - product.selling_price) }}
+                    </span>
+                    {% endif %}
+                </div>
+                <p style="color: var(--dell-gray-500); font-size: 0.85rem; margin: 8px 0 0;">
+                    <i class="fas fa-check-circle me-1" style="color: var(--dell-green);"></i> Inclusive of all taxes
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-credit-card me-1"></i> No-Cost EMI from ₹{{ "{:,.0f}".format((product.selling_price / 12)|int) }}/mo
+                </p>
+            </div>
+
+            <!-- Specifications -->
+            <h5 style="font-weight: 700; margin-bottom: 16px;">
+                <i class="fas fa-list-ul me-2" style="color: var(--dell-blue);"></i> Specifications
+            </h5>
+            <table class="table spec-table" style="font-size: 0.9rem;">
+                <tbody>
+                    {% if product.processor %}
+                    <tr><th><i class="fas fa-microchip me-2"></i>Processor</th><td>{{ product.processor }}</td></tr>
+                    {% endif %}
+                    {% if product.ram %}
+                    <tr><th><i class="fas fa-memory me-2"></i>RAM</th><td>{{ product.ram }}</td></tr>
+                    {% endif %}
+                    {% if product.storage %}
+                    <tr><th><i class="fas fa-hdd me-2"></i>Storage</th><td>{{ product.storage }}</td></tr>
+                    {% endif %}
+                    {% if product.display %}
+                    <tr><th><i class="fas fa-tv me-2"></i>Display</th><td>{{ product.display }}</td></tr>
+                    {% endif %}
+                    {% if product.graphics %}
+                    <tr><th><i class="fas fa-gamepad me-2"></i>Graphics</th><td>{{ product.graphics }}</td></tr>
+                    {% endif %}
+                    {% if product.os %}
+                    <tr><th><i class="fab fa-windows me-2"></i>OS</th><td>{{ product.os }}</td></tr>
+                    {% endif %}
+                    {% if product.weight %}
+                    <tr><th><i class="fas fa-weight-hanging me-2"></i>Weight</th><td>{{ product.weight }}</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <!-- Add to Cart -->
+            <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST" class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg w-100" style="padding: 16px; font-size: 1.05rem; border-radius: var(--radius-sm);">
+                    <i class="fas fa-shopping-bag me-2"></i> Add to Cart
+                </button>
+            </form>
+
+            <!-- Stock Status -->
+            <div class="mt-3 d-flex gap-4" style="font-size: 0.9rem;">
+                {% if product.in_stock %}
+                <span style="color: var(--dell-green); font-weight: 600;">
+                    <i class="fas fa-check-circle me-1"></i> In Stock ({{ product.stock_quantity }} units)
+                </span>
+                {% else %}
+                <span style="color: #D32F2F; font-weight: 600;">
+                    <i class="fas fa-times-circle me-1"></i> Out of Stock
+                </span>
+                {% endif %}
+                <span style="color: var(--dell-gray-500);">
+                    <i class="fas fa-truck me-1"></i> Free delivery in 2-4 days
+                </span>
+            </div>
         </div>
     </div>
-    {% else %}
-    <p class="text-muted">No reviews yet. Be the first to review!</p>
-    {% endfor %}
+
+    <!-- REVIEWS SECTION -->
+    <div class="mt-5 pt-4" style="border-top: 1px solid var(--dell-gray-300);">
+        <h4 style="font-weight: 700;">
+            <i class="fas fa-star me-2" style="color: #FFC107;"></i> Customer Reviews ({{ reviews|length }})
+        </h4>
+        <div class="mt-3">
+            {% for review in reviews %}
+            <div class="card mb-3" style="border: 1px solid var(--dell-gray-300);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>{{ review.user.name }}</strong>
+                        <span class="text-warning">
+                            {% for i in range(review.rating) %}<i class="fas fa-star"></i>{% endfor %}
+                            {% for i in range(5 - review.rating) %}<i class="far fa-star"></i>{% endfor %}
+                        </span>
+                    </div>
+                    <p class="mt-2 mb-1" style="color: var(--dell-gray-700);">{{ review.comment }}</p>
+                    <small style="color: var(--dell-gray-500);">{{ review.created_at.strftime('%d %b %Y') }}</small>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-4" style="color: var(--dell-gray-500);">
+                <i class="far fa-comment-dots fa-2x mb-2"></i>
+                <p>No reviews yet. Be the first to review this product!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -2,86 +2,238 @@
 {% block title %}Home - Dell Authorized Store{% endblock %}
 
 {% block content %}
-<!-- HERO BANNER -->
-<div class="hero-section bg-primary text-white rounded-3 p-5 mb-5">
-    <div class="row align-items-center">
-        <div class="col-md-6">
-            <h1 class="display-4 fw-bold">Authorized Dell Store</h1>
-            <p class="lead">Latest Dell Laptops, Desktops & All-in-Ones at unbeatable prices.</p>
-            <a href="{{ url_for('products') }}" class="btn btn-light btn-lg">Shop Now <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="col-md-6 text-center">
-            <img src="https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png"
-                 alt="Dell Laptops" class="img-fluid" style="max-height: 300px;">
-        </div>
-    </div>
-</div>
-
-<!-- CATEGORIES -->
-<h2 class="mb-4">Shop by Category</h2>
-<div class="row mb-5">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <i class="fas fa-laptop fa-3x text-primary mb-3"></i>
-                <h4>Laptops</h4>
-                <p>Inspiron, XPS, Latitude, Vostro</p>
-                <a href="{{ url_for('products', category='laptop') }}" class="btn btn-outline-primary">View All</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <i class="fas fa-desktop fa-3x text-primary mb-3"></i>
-                <h4>Desktops</h4>
-                <p>OptiPlex, XPS, Inspiron, Precision</p>
-                <a href="{{ url_for('products', category='desktop') }}" class="btn btn-outline-primary">View All</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <i class="fas fa-tv fa-3x text-primary mb-3"></i>
-                <h4>All-in-Ones</h4>
-                <p>Inspiron AIO, OptiPlex AIO</p>
-                <a href="{{ url_for('products', category='all-in-one') }}" class="btn btn-outline-primary">View All</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- FEATURED PRODUCTS -->
-<h2 class="mb-4">Featured Products</h2>
-<div class="row">
-    {% for product in products %}
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 shadow-sm product-card">
-            <img src="{{ product.image_url or 'https://via.placeholder.com/300x200?text=Dell' }}"
-                 class="card-img-top p-3" alt="{{ product.name }}" style="height: 180px; object-fit: contain;">
-            <div class="card-body">
-                <h6 class="card-title">{{ product.name[:50] }}</h6>
-                <p class="text-muted small">{{ product.processor[:40] if product.processor else '' }}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold text-primary">&#8377;{{ "{:,.0f}".format(product.selling_price) }}</span>
-                    {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
-                        <span class="text-muted text-decoration-line-through small">&#8377;{{ "{:,.0f}".format(product.dell_mrp) }}</span>
-                    {% endif %}
+<!-- HERO SECTION -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-badge">
+                    <i class="fas fa-certificate me-1"></i> Authorized Dell Partner — Trusted Since 2020
+                </div>
+                <h1 class="hero-title">
+                    Do More.<br><span>Save More.</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Lightweight Dell PCs with built-in AI — now available with cashback, 
+                    No-Cost EMI, and exclusive bundle offers. Genuine warranty included.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{{ url_for('products', category='laptop') }}" class="hero-cta">
+                        <i class="fas fa-laptop"></i> PC Deals
+                    </a>
+                    <a href="{{ url_for('service_page') }}" class="hero-cta hero-cta-secondary">
+                        <i class="fas fa-headset"></i> Get Support
+                    </a>
                 </div>
             </div>
-            <div class="card-footer bg-white border-0">
-                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-primary w-100">View Details</a>
+            <div class="col-lg-6 text-center hero-image d-none d-lg-block">
+                <img src="https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png"
+                     alt="Dell XPS Laptop" class="img-fluid">
             </div>
         </div>
     </div>
-    {% endfor %}
+</section>
+
+<!-- OFFERS TICKER -->
+<div class="offers-bar">
+    <div class="container overflow-hidden">
+        <div class="ticker">
+            <span><i class="fas fa-truck me-2"></i> Free Delivery on Orders Above ₹50,000</span>
+            <span><i class="fas fa-shield-alt me-2"></i> 1 Year Official Dell Warranty</span>
+            <span><i class="fas fa-undo me-2"></i> 7-Day Easy Returns</span>
+            <span><i class="fas fa-credit-card me-2"></i> No-Cost EMI Available</span>
+            <span><i class="fas fa-percent me-2"></i> Up to 15% Off on XPS Series</span>
+            <span><i class="fas fa-truck me-2"></i> Free Delivery on Orders Above ₹50,000</span>
+            <span><i class="fas fa-shield-alt me-2"></i> 1 Year Official Dell Warranty</span>
+            <span><i class="fas fa-undo me-2"></i> 7-Day Easy Returns</span>
+            <span><i class="fas fa-credit-card me-2"></i> No-Cost EMI Available</span>
+            <span><i class="fas fa-percent me-2"></i> Up to 15% Off on XPS Series</span>
+        </div>
+    </div>
 </div>
 
-{% if not products %}
-<div class="text-center py-5">
-    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-    <p class="text-muted">No products yet. Admin can trigger scraping from the admin panel.</p>
-</div>
+<!-- FEATURES STRIP -->
+<section class="features-strip">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-6">
+                <div class="feature-item">
+                    <i class="fas fa-shipping-fast"></i>
+                    <div>
+                        <h6>Fast Delivery</h6>
+                        <p>2-4 business days</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="feature-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h6>Official Warranty</h6>
+                        <p>Dell authorized service</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="feature-item">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <div>
+                        <h6>Best Price</h6>
+                        <p>Price match guarantee</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="feature-item">
+                    <i class="fas fa-headset"></i>
+                    <div>
+                        <h6>Expert Support</h6>
+                        <p>Dedicated assistance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SHOP BY CATEGORY -->
+<section class="py-5">
+    <div class="container">
+        <div class="section-header">
+            <h2>Shop by Category</h2>
+            <p>Find the perfect Dell for your needs</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <a href="{{ url_for('products', category='laptop') }}" class="category-card">
+                    <div class="category-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h4>Laptops</h4>
+                    <p>Inspiron · XPS · Latitude · Vostro · Precision</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('products', category='desktop') }}" class="category-card">
+                    <div class="category-icon">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <h4>Desktops</h4>
+                    <p>OptiPlex · XPS · Inspiron · Precision Tower</p>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('products', category='all-in-one') }}" class="category-card">
+                    <div class="category-icon">
+                        <i class="fas fa-tv"></i>
+                    </div>
+                    <h4>All-in-Ones</h4>
+                    <p>Inspiron AIO · OptiPlex AIO · XPS AIO</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURED PRODUCTS -->
+{% if products %}
+<section class="py-5" style="background: var(--dell-gray-100);">
+    <div class="container">
+        <div class="section-header">
+            <h2>Featured Products</h2>
+            <p>Handpicked deals on the latest Dell hardware</p>
+        </div>
+        <div class="row g-4">
+            {% for product in products %}
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="product-card">
+                    <div class="card-img-wrapper">
+                        {% if product.discount_percent and product.discount_percent > 0 %}
+                        <span class="discount-badge">{{ product.discount_percent|int }}% OFF</span>
+                        {% endif %}
+                        <img src="{{ product.image_url or 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
+                             alt="{{ product.name }}">
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">{{ product.name[:55] }}</h6>
+                        <p class="card-specs">
+                            {{ product.processor[:35] if product.processor else '' }}
+                            {% if product.ram %} · {{ product.ram }}{% endif %}
+                        </p>
+                        <div class="price-section">
+                            <span class="price-current">₹{{ "{:,.0f}".format(product.selling_price) }}</span>
+                            {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
+                            <span class="price-original">₹{{ "{:,.0f}".format(product.dell_mrp) }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn-view">
+                            View Details <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-5">
+            <a href="{{ url_for('products') }}" class="btn btn-outline-primary btn-lg px-5">
+                View All Products <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% else %}
+<section class="py-5">
+    <div class="container text-center">
+        <div style="padding: 60px 20px;">
+            <i class="fas fa-box-open fa-4x mb-4" style="color: var(--dell-gray-300);"></i>
+            <h3 style="color: var(--dell-gray-700);">Products Coming Soon</h3>
+            <p style="color: var(--dell-gray-500);">Admin can import products via the Excel upload in the admin panel.</p>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-upload me-2"></i> Go to Admin Panel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
 {% endif %}
+
+<!-- WHY CHOOSE US -->
+<section class="py-5">
+    <div class="container">
+        <div class="section-header">
+            <h2>Why Choose Us?</h2>
+            <p>India's trusted destination for genuine Dell products</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center p-4">
+                    <div style="width:70px; height:70px; background: var(--dell-blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-award fa-2x" style="color: var(--dell-blue);"></i>
+                    </div>
+                    <h5 style="font-weight: 700;">100% Genuine Products</h5>
+                    <p style="color: var(--dell-gray-500); font-size: 0.9rem;">Every product comes with Dell's official warranty and authenticity guarantee.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-4">
+                    <div style="width:70px; height:70px; background: var(--dell-blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-tools fa-2x" style="color: var(--dell-blue);"></i>
+                    </div>
+                    <h5 style="font-weight: 700;">In-House Service Center</h5>
+                    <p style="color: var(--dell-gray-500); font-size: 0.9rem;">Dell-certified technicians handle all repairs with genuine spare parts.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-4">
+                    <div style="width:70px; height:70px; background: var(--dell-blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-rupee-sign fa-2x" style="color: var(--dell-blue);"></i>
+                    </div>
+                    <h5 style="font-weight: 700;">Best Market Price</h5>
+                    <p style="color: var(--dell-gray-500); font-size: 0.9rem;">Competitive pricing with exclusive offers, EMI options, and exchange deals.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %}

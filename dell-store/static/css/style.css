@@ -1,91 +1,812 @@
-/* ====== CUSTOM CSS FOR DELL STORE ====== */
+/* ====== DELL AUTHORIZED STORE — PREMIUM UI ====== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
     --dell-blue: #0076CE;
-    --dell-dark: #1a1a2e;
+    --dell-blue-dark: #004B87;
+    --dell-blue-light: #E8F4FD;
+    --dell-navy: #0C2340;
+    --dell-black: #111111;
+    --dell-gray-900: #1D1D1F;
+    --dell-gray-700: #444444;
+    --dell-gray-500: #6E6E73;
+    --dell-gray-300: #D2D2D7;
+    --dell-gray-100: #F5F5F7;
+    --dell-white: #FFFFFF;
+    --dell-green: #00875A;
+    --dell-orange: #FF6B35;
+    --gradient-hero: linear-gradient(135deg, #0C2340 0%, #1B4B7A 50%, #0076CE 100%);
+    --gradient-card: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,118,206,0.03) 100%);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,0.15);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Navbar */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--dell-gray-900);
+    background: var(--dell-white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ====== TOP BAR (Utility Nav) ====== */
+
+.top-bar {
+    background: var(--dell-black);
+    color: var(--dell-white);
+    padding: 8px 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+}
+
+.top-bar a {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.top-bar a:hover {
+    color: var(--dell-white);
+}
+
+/* ====== MAIN NAVBAR ====== */
+
 .navbar {
-    background: linear-gradient(135deg, var(--dell-blue), #004080) !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    background: var(--dell-white) !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+    padding: 12px 0;
+    transition: var(--transition);
+    border-bottom: 1px solid var(--dell-gray-300);
 }
 
-/* Hero Section */
+.navbar.scrolled {
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--dell-blue) !important;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-brand .brand-logo {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--dell-blue);
+    letter-spacing: -1px;
+}
+
+.navbar-brand .brand-sub {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--dell-gray-500);
+    display: block;
+    line-height: 1.2;
+}
+
+.navbar .nav-link {
+    color: var(--dell-gray-700) !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 8px 16px !important;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    position: relative;
+}
+
+.navbar .nav-link:hover {
+    color: var(--dell-blue) !important;
+    background: var(--dell-blue-light);
+}
+
+.navbar .nav-link.active {
+    color: var(--dell-blue) !important;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 60%;
+    height: 2px;
+    background: var(--dell-blue);
+    transition: transform 0.3s ease;
+    border-radius: 2px;
+}
+
+.navbar .nav-link:hover::after {
+    transform: translateX(-50%) scaleX(1);
+}
+
+.nav-cart-btn {
+    position: relative;
+    background: var(--dell-blue-light);
+    border-radius: 50px;
+    padding: 8px 16px !important;
+}
+
+.nav-cart-btn:hover {
+    background: var(--dell-blue) !important;
+    color: var(--dell-white) !important;
+}
+
+/* ====== HERO SECTION ====== */
+
 .hero-section {
-    background: linear-gradient(135deg, var(--dell-blue), #003366);
+    background: var(--gradient-hero);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+    min-height: 520px;
+    display: flex;
+    align-items: center;
 }
 
-/* Product Cards */
-.product-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 60%;
+    height: 200%;
+    background: radial-gradient(ellipse, rgba(0,118,206,0.15) 0%, transparent 70%);
+    animation: heroPulse 8s ease-in-out infinite;
 }
 
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+.hero-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 }
 
-.product-card .card-img-top {
-    height: 180px;
-    object-fit: contain;
+@keyframes heroPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
 }
 
-/* Buttons */
-.btn-primary {
-    background-color: var(--dell-blue);
+.hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--dell-white);
+    line-height: 1.1;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+}
+
+.hero-title span {
+    background: linear-gradient(135deg, #64B5F6, #E3F2FD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.15rem;
+    color: rgba(255,255,255,0.75);
+    font-weight: 400;
+    margin-bottom: 35px;
+    max-width: 480px;
+    line-height: 1.7;
+}
+
+.hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--dell-white);
+    color: var(--dell-navy);
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: var(--transition);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.hero-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    color: var(--dell-blue);
+}
+
+.hero-cta-secondary {
+    background: transparent;
+    border: 2px solid rgba(255,255,255,0.4);
+    color: var(--dell-white);
+    box-shadow: none;
+}
+
+.hero-cta-secondary:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.7);
+    color: var(--dell-white);
+}
+
+.hero-image {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-image img {
+    max-height: 380px;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+    animation: floatHero 6s ease-in-out infinite;
+}
+
+@keyframes floatHero {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+}
+
+/* ====== OFFERS TICKER ====== */
+
+.offers-bar {
+    background: var(--dell-blue);
+    color: var(--dell-white);
+    padding: 10px 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    overflow: hidden;
+}
+
+.offers-bar .ticker {
+    display: flex;
+    gap: 60px;
+    animation: scroll 25s linear infinite;
+    white-space: nowrap;
+}
+
+@keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ====== CATEGORY SECTION ====== */
+
+.section-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.section-header h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--dell-gray-900);
+    letter-spacing: -1px;
+}
+
+.section-header p {
+    color: var(--dell-gray-500);
+    font-size: 1.05rem;
+    margin-top: 10px;
+}
+
+.category-card {
+    background: var(--dell-white);
+    border: 1px solid var(--dell-gray-300);
+    border-radius: var(--radius-lg);
+    padding: 40px 30px;
+    text-align: center;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--dell-blue);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
     border-color: var(--dell-blue);
 }
 
+.category-card:hover::before {
+    transform: scaleX(1);
+}
+
+.category-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--dell-blue-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2rem;
+    color: var(--dell-blue);
+    transition: var(--transition);
+}
+
+.category-card:hover .category-icon {
+    background: var(--dell-blue);
+    color: var(--dell-white);
+    transform: scale(1.1);
+}
+
+.category-card h4 {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: var(--dell-gray-900);
+}
+
+.category-card p {
+    color: var(--dell-gray-500);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+/* ====== PRODUCT CARDS ====== */
+
+.product-card {
+    background: var(--dell-white);
+    border: 1px solid var(--dell-gray-300);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: var(--transition);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+    border-color: transparent;
+}
+
+.product-card .card-img-wrapper {
+    background: var(--dell-gray-100);
+    padding: 30px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.product-card .card-img-wrapper img {
+    height: 180px;
+    object-fit: contain;
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover .card-img-wrapper img {
+    transform: scale(1.08);
+}
+
+.product-card .discount-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: var(--dell-orange);
+    color: var(--dell-white);
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.product-card .card-body {
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card .card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--dell-gray-900);
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.product-card .card-specs {
+    color: var(--dell-gray-500);
+    font-size: 0.8rem;
+    margin-bottom: 15px;
+    flex-grow: 1;
+}
+
+.product-card .price-section {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.product-card .price-current {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--dell-blue);
+}
+
+.product-card .price-original {
+    font-size: 0.85rem;
+    color: var(--dell-gray-500);
+    text-decoration: line-through;
+}
+
+.product-card .btn-view {
+    background: var(--dell-blue);
+    color: var(--dell-white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.85rem;
+    width: 100%;
+    transition: var(--transition);
+    text-align: center;
+    text-decoration: none;
+    display: block;
+}
+
+.product-card .btn-view:hover {
+    background: var(--dell-blue-dark);
+    transform: translateY(-1px);
+}
+
+/* ====== FEATURES STRIP ====== */
+
+.features-strip {
+    background: var(--dell-gray-100);
+    padding: 40px 0;
+    border-top: 1px solid var(--dell-gray-300);
+    border-bottom: 1px solid var(--dell-gray-300);
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 0;
+}
+
+.feature-item i {
+    font-size: 1.5rem;
+    color: var(--dell-blue);
+    width: 50px;
+    height: 50px;
+    background: var(--dell-white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+
+.feature-item h6 {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.feature-item p {
+    font-size: 0.8rem;
+    color: var(--dell-gray-500);
+    margin-bottom: 0;
+}
+
+/* ====== BUTTONS ====== */
+
+.btn-primary {
+    background: var(--dell-blue);
+    border-color: var(--dell-blue);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    padding: 10px 24px;
+    transition: var(--transition);
+}
+
 .btn-primary:hover {
-    background-color: #005a9e;
-    border-color: #005a9e;
+    background: var(--dell-blue-dark);
+    border-color: var(--dell-blue-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,118,206,0.3);
 }
 
-/* Footer */
+.btn-outline-primary {
+    border-color: var(--dell-blue);
+    color: var(--dell-blue);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+}
+
+.btn-outline-primary:hover {
+    background: var(--dell-blue);
+    border-color: var(--dell-blue);
+    box-shadow: 0 4px 12px rgba(0,118,206,0.3);
+}
+
+/* ====== FOOTER ====== */
+
 footer {
-    background: var(--dell-dark) !important;
+    background: var(--dell-navy) !important;
+    color: rgba(255,255,255,0.85);
+    padding: 60px 0 30px;
 }
 
-/* Admin Panel */
+footer h5 {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: var(--dell-white);
+}
+
+footer a {
+    color: rgba(255,255,255,0.65);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+footer a:hover {
+    color: var(--dell-white);
+    padding-left: 5px;
+}
+
+footer .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 25px;
+    margin-top: 40px;
+}
+
+footer .social-icons a {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    transition: var(--transition);
+}
+
+footer .social-icons a:hover {
+    background: var(--dell-blue);
+    transform: translateY(-3px);
+    padding-left: 0;
+}
+
+/* ====== FLASH MESSAGES ====== */
+
+.alert {
+    border-radius: var(--radius-sm);
+    border: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.alert-success {
+    background: #E8F8F0;
+    color: #00875A;
+}
+
+.alert-error, .alert-danger {
+    background: #FEE8E7;
+    color: #D32F2F;
+}
+
+/* ====== ADMIN TABLE ====== */
+
 .admin-table input[type="number"] {
     width: 120px;
 }
 
-/* Cart Badge */
-.cart-badge {
-    position: relative;
-    top: -8px;
-    right: 5px;
-    font-size: 0.7rem;
+.admin-table {
+    font-size: 0.9rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .hero-section {
-        text-align: center;
-    }
-    .hero-section img {
-        margin-top: 20px;
-    }
-    .product-card .card-img-top {
-        height: 140px;
-    }
-}
+/* ====== CARDS GENERAL ====== */
 
-/* Breadcrumb */
-.breadcrumb-item + .breadcrumb-item::before {
-    color: var(--dell-blue);
-}
-
-/* Card Shadows */
 .card {
-    border-radius: 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--dell-gray-300);
 }
 
-/* Form Controls */
+/* ====== FORM CONTROLS ====== */
+
+.form-control {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--dell-gray-300);
+    padding: 10px 14px;
+    transition: var(--transition);
+}
+
 .form-control:focus {
     border-color: var(--dell-blue);
-    box-shadow: 0 0 0 0.2rem rgba(0, 118, 206, 0.25);
+    box-shadow: 0 0 0 3px rgba(0, 118, 206, 0.1);
+}
+
+/* ====== RESPONSIVE ====== */
+
+@media (max-width: 992px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    .hero-section {
+        padding: 50px 0;
+        min-height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    .hero-image img {
+        max-height: 250px;
+    }
+    .top-bar {
+        display: none;
+    }
+    .category-card {
+        padding: 25px 20px;
+    }
+    .section-header h2 {
+        font-size: 1.7rem;
+    }
+}
+
+/* ====== PRODUCT DETAIL PAGE ====== */
+
+.product-detail-img {
+    background: var(--dell-gray-100);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    text-align: center;
+}
+
+.product-detail-img img {
+    max-height: 350px;
+    object-fit: contain;
+}
+
+.spec-table th {
+    color: var(--dell-gray-500);
+    font-weight: 500;
+    font-size: 0.9rem;
+    width: 35%;
+}
+
+.spec-table td {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* ====== SERVICE PAGE ====== */
+
+.chat-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.chat-bubble {
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    animation: fadeInUp 0.3s ease;
+}
+
+.chat-bubble.bot {
+    background: var(--dell-gray-100);
+    border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user {
+    background: var(--dell-blue-light);
+    border-bottom-right-radius: 4px;
+    margin-left: 20%;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== CONTACT FLOATING BUTTON ====== */
+
+.contact-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--dell-blue);
+    color: var(--dell-white);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    text-decoration: none;
+    z-index: 1000;
+}
+
+.contact-fab:hover {
+    transform: scale(1.1);
+    background: var(--dell-blue-dark);
+    color: var(--dell-white);
+}
+
+/* ====== LOADING SHIMMER ====== */
+
+.shimmer {
+    background: linear-gradient(90deg, var(--dell-gray-100) 25%, #e8e8e8 50%, var(--dell-gray-100) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ====== PAGE TRANSITIONS ====== */
+
+main {
+    animation: pageIn 0.4s ease;
+}
+
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
