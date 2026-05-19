@@ -40,13 +40,13 @@
                     <td>
                         {% for part in req.parts %}
                         <div class="small">
-                            {{ part.part }}
-                            <span class="text-success">₹{{ "{:,.0f}".format(part.price) }}</span>
-                            + ₹{{ "{:,.0f}".format(part.labour_charge) }} labour
+                            {{ part.part|default('Unknown Part') }}
+                            <span class="text-success">₹{{ "{:,.0f}".format(part.price|default(0)|float) }}</span>
+                            + ₹{{ "{:,.0f}".format(part.labour_charge|default(0)|float) }} labour
                         </div>
                         {% endfor %}
                     </td>
-                    <td><strong>₹{{ "{:,.0f}".format(req.total_estimate) }}</strong></td>
+                    <td><strong>₹{{ "{:,.0f}".format(req.total_estimate|default(0)|float) }}</strong></td>
                     <td>
                         {% if req.status == 'pending' %}
                         <span class="badge bg-warning text-dark">Pending</span>
