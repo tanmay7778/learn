@@ -4,6 +4,7 @@ import json
 import random
 from datetime import datetime
 import pandas as pd
+import requests as http_requests  # renamed to avoid conflict with flask.request
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -505,10 +506,46 @@ def update_service_status(request_id):
 
 
 # ==========================================
-# SERVICE CHATBOT ROUTES
+# SERVICE CHATBOT ROUTES (Gemini AI + Parts DB)
 # ==========================================
 
 PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
+
+# System prompt for domain-locked Dell service assistant
+SERVICE_SYSTEM_PROMPT = """You are a Dell Laptop Service Assistant for an authorized Dell service center.
+
+YOUR ROLE:
+- Help customers get repair estimates for Dell laptops
+- Look up part prices and labour charges from the parts database
+- Guide customers to submit service requests
+- Answer questions about Dell laptop repairs, warranty, and service timelines
+
+STRICT RULES:
+1. ONLY answer questions related to Dell laptop/desktop repairs, parts, service, and warranty.
+2. If asked about anything unrelated (politics, coding, recipes, other brands, general knowledge), politely say: "I'm a Dell service assistant and can only help with Dell product repairs and service requests. How can I help you with your Dell device?"
+3. NEVER make up part prices. Only quote prices from the PARTS DATABASE provided below.
+4. If a model or part is not in the database, say "I don't have pricing for that specific model/part. Please contact our service desk for a custom quote."
+5. Always include labour charges when giving estimates.
+6. Be friendly, professional, and concise.
+7. When you provide an estimate, format it clearly with part cost + labour = total.
+8. Suggest submitting a service request after providing an estimate.
+
+SERVICE INFO:
+- Typical repair time: 2-5 business days
+- Warranty repairs: Free if under Dell warranty (1 year standard)
+- Walk-in hours: Mon-Sat, 10 AM - 8 PM
+- Emergency/same-day service available for additional ₹500
+
+PARTS DATABASE:
+{parts_data}
+
+CONVERSATION STYLE:
+- Greet warmly on first message
+- Ask which Dell model they have if not specified
+- Be specific with pricing (always in ₹)
+- Use simple language, avoid jargon
+- End estimates with "Would you like me to book a service request for this?"
+"""
 
 
 def _create_default_parts_excel():
@@ -579,13 +616,145 @@ def load_parts_data():
         return _create_default_parts_excel()
 
 
+def get_parts_context():
+    """Format parts data as text for LLM context."""
+    df = load_parts_data()
+    if df.empty:
+        return "No parts data available."
+
+    lines = []
+    current_model = ""
+    for _, row in df.iterrows():
+        if row["model"] != current_model:
+            current_model = row["model"]
+            lines.append(f"\n{current_model}:")
+        lines.append(f"  - {row['part']} (Code: {row['part_code']}): Part ₹{int(row['price'])} + Labour ₹{int(row['labour_charge'])} = Total ₹{int(row['price'] + row['labour_charge'])}")
+
+    return "\n".join(lines)
+
+
+def call_gemini_api(messages, parts_context):
+    """Call Google Gemini API with conversation history."""
+    api_key = app.config.get("GEMINI_API_KEY", "")
+    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
+        return None, "Gemini API key not configured. Please add your key in config.py"
+
+    # Build the system instruction with parts data
+    system_instruction = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
+
+    # Format conversation for Gemini API
+    contents = []
+    for msg in messages:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg["content"]}]
+        })
+
+    # Gemini API endpoint (v1beta for free tier)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+
+    payload = {
+        "contents": contents,
+        "systemInstruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "generationConfig": {
+            "temperature": 0.7,
+            "topP": 0.9,
+            "maxOutputTokens": 1024,
+        },
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+    }
+
+    try:
+        response = http_requests.post(url, json=payload, timeout=30)
+        if response.status_code == 200:
+            data = response.json()
+            # Extract text from Gemini response
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", ""), None
+            return None, "Empty response from Gemini"
+        else:
+            error_detail = response.json().get("error", {}).get("message", response.text[:200])
+            return None, f"Gemini API error ({response.status_code}): {error_detail}"
+    except http_requests.exceptions.Timeout:
+        return None, "Request timed out. Please try again."
+    except Exception as e:
+        return None, f"Connection error: {str(e)}"
+
+
 @app.route("/service")
 def service_page():
-    df = load_parts_data()
-    models = sorted(df["model"].unique().tolist()) if not df.empty else []
-    return render_template("service.html", models=models)
+    # Clear chat history on fresh page load
+    session.pop("chat_history", None)
+    return render_template("service.html")
 
 
+@app.route("/service/chat", methods=["POST"])
+def service_chat():
+    """Handle chat messages — calls Gemini API with domain-locked prompt."""
+    data = request.get_json()
+    if not data or not data.get("message"):
+        return jsonify({"error": "No message provided"}), 400
+
+    user_message = data["message"].strip()
+    if not user_message:
+        return jsonify({"error": "Empty message"}), 400
+
+    # Get or create chat history in session
+    chat_history = session.get("chat_history", [])
+
+    # Add user message to history
+    chat_history.append({"role": "user", "content": user_message})
+
+    # Get parts context for the LLM
+    parts_context = get_parts_context()
+
+    # Call Gemini
+    reply, error = call_gemini_api(chat_history, parts_context)
+
+    if error:
+        # Fallback: if API fails, provide helpful message
+        reply = (
+            "I'm having trouble connecting to my AI service right now. "
+            "But I can still help! Here are our supported models:\n\n"
+            "• Dell Inspiron 15 3520\n• Dell Inspiron 14 5430\n"
+            "• Dell XPS 13 9340\n• Dell XPS 15 9530\n"
+            "• Dell Latitude 5540\n• Dell Vostro 3520\n\n"
+            "Please tell me your model and what part needs repair, "
+            "and I'll look up the pricing for you.\n\n"
+            f"_(Technical note: {error})_"
+        )
+
+    # Add assistant reply to history
+    chat_history.append({"role": "assistant", "content": reply})
+
+    # Keep only last 20 messages to avoid session bloat
+    if len(chat_history) > 20:
+        chat_history = chat_history[-20:]
+
+    session["chat_history"] = chat_history
+
+    return jsonify({"reply": reply})
+
+
+@app.route("/service/chat/reset", methods=["POST"])
+def service_chat_reset():
+    """Reset chat history."""
+    session.pop("chat_history", None)
+    return jsonify({"success": True})
+
+
+# Legacy routes (keep for backward compatibility)
 @app.route("/service/parts")
 def service_parts():
     model = request.args.get("model", "")

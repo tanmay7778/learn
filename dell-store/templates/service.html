@@ -1,78 +1,111 @@
 {% extends "base.html" %}
-{% block title %}Service Request - Dell Store{% endblock %}
+{% block title %}Service Center - Dell Store{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white d-flex align-items-center">
-                <i class="fas fa-robot fa-lg me-2"></i>
-                <h5 class="mb-0">Service Assistant</h5>
-                <span class="badge bg-success ms-auto">Online</span>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <div style="width: 70px; height: 70px; background: var(--dell-blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i class="fas fa-robot fa-2x" style="color: var(--dell-blue);"></i>
+                </div>
+                <h2 style="font-weight: 800; letter-spacing: -1px;">Dell Service Assistant</h2>
+                <p style="color: var(--dell-gray-500);">AI-powered support for repairs, parts pricing & service bookings</p>
             </div>
 
-            <!-- Chat Messages Area -->
-            <div class="card-body" id="chatArea" style="height: 450px; overflow-y: auto; background: #f8f9fa;">
-                <!-- Bot welcome message -->
-                <div class="d-flex mb-3">
-                    <div class="bot-avatar me-2">
-                        <i class="fas fa-robot text-primary fa-lg"></i>
-                    </div>
-                    <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
-                        <p class="mb-0">Hello! I'm your Dell Service Assistant. I can help you get a repair cost estimate.</p>
-                        <p class="mb-0 mt-2">Please select your <strong>laptop model</strong> below to get started.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div class="card-footer bg-white p-3">
-                <!-- Step 1: Model Selection -->
-                <div id="step1">
-                    <label class="form-label fw-bold">Step 1: Select your Dell model</label>
-                    <select id="modelSelect" class="form-select">
-                        <option value="">-- Choose a model --</option>
-                        {% for model in models %}
-                        <option value="{{ model }}">{{ model }}</option>
-                        {% endfor %}
-                    </select>
-                    <button class="btn btn-primary mt-2" onclick="selectModel()">Next <i class="fas fa-arrow-right"></i></button>
-                </div>
-
-                <!-- Step 2: Part Selection (hidden initially) -->
-                <div id="step2" style="display: none;">
-                    <label class="form-label fw-bold">Step 2: What part needs repair/replacement?</label>
-                    <select id="partSelect" class="form-select">
-                        <option value="">-- Choose a part --</option>
-                    </select>
-                    <button class="btn btn-primary mt-2" onclick="selectPart()">Get Estimate <i class="fas fa-calculator"></i></button>
-                    <button class="btn btn-outline-secondary mt-2 ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Start Over</button>
-                </div>
-
-                <!-- Step 3: Result + Service Form (hidden initially) -->
-                <div id="step3" style="display: none;">
-                    <button class="btn btn-success mt-2" onclick="submitServiceRequest()"><i class="fas fa-paper-plane"></i> Submit Service Request</button>
-                    <button class="btn btn-outline-primary mt-2 ms-2" onclick="addAnotherPart()"><i class="fas fa-plus"></i> Add Another Part</button>
-                    <button class="btn btn-outline-secondary mt-2 ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Start Over</button>
-                </div>
-
-                <!-- Step 4: Contact Form (hidden initially) -->
-                <div id="step4" style="display: none;">
-                    <form id="serviceForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <input type="text" id="custName" class="form-control" placeholder="Your Name" required>
+            <!-- Chat Container -->
+            <div class="card" style="border: 1px solid var(--dell-gray-300); border-radius: var(--radius-lg); overflow: hidden;">
+                <!-- Chat Messages Area -->
+                <div id="chatMessages" style="height: 450px; overflow-y: auto; padding: 24px; background: var(--dell-gray-100);">
+                    <!-- Welcome message -->
+                    <div class="chat-bubble bot">
+                        <div class="d-flex align-items-start gap-2">
+                            <div style="width: 32px; height: 32px; background: var(--dell-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-wrench" style="color: white; font-size: 0.8rem;"></i>
                             </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="tel" id="custPhone" class="form-control" placeholder="Phone Number" required>
+                            <div>
+                                <strong style="font-size: 0.8rem; color: var(--dell-blue);">Dell Service Bot</strong>
+                                <p style="margin: 4px 0 0; font-size: 0.9rem; line-height: 1.6;">
+                                    👋 Hello! I'm your Dell Service Assistant. I can help you with:
+                                </p>
+                                <ul style="margin: 8px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--dell-gray-700);">
+                                    <li>Repair cost estimates for Dell laptops</li>
+                                    <li>Part availability and pricing</li>
+                                    <li>Booking service requests</li>
+                                    <li>Warranty and service information</li>
+                                </ul>
+                                <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--dell-gray-500);">
+                                    Just tell me your Dell model and what's wrong — I'll get you a quote instantly!
+                                </p>
                             </div>
                         </div>
-                        <div class="mb-2">
-                            <textarea id="custIssue" class="form-control" rows="2" placeholder="Describe the issue briefly (optional)"></textarea>
-                        </div>
-                        <button type="button" class="btn btn-success" onclick="confirmRequest()"><i class="fas fa-check"></i> Confirm Request</button>
-                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetChat()"><i class="fas fa-redo"></i> Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Quick Suggestion Chips -->
+                <div id="quickChips" style="padding: 12px 24px; border-top: 1px solid var(--dell-gray-300); background: white;">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="chip-btn" onclick="sendQuickMessage('My Inspiron 3520 screen is cracked')">
+                            Screen repair cost?
+                        </button>
+                        <button class="chip-btn" onclick="sendQuickMessage('What models do you service?')">
+                            Supported models
+                        </button>
+                        <button class="chip-btn" onclick="sendQuickMessage('My laptop battery drains fast')">
+                            Battery issue
+                        </button>
+                        <button class="chip-btn" onclick="sendQuickMessage('How long does a repair take?')">
+                            Repair timeline
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div style="padding: 16px 24px; border-top: 1px solid var(--dell-gray-300); background: white;">
+                    <form id="chatForm" class="d-flex gap-2" onsubmit="sendMessage(event)">
+                        <input type="text" id="chatInput" class="form-control"
+                               placeholder="Describe your Dell laptop issue..."
+                               autocomplete="off"
+                               style="border-radius: 50px; padding: 12px 20px; font-size: 0.9rem;">
+                        <button type="submit" id="sendBtn" class="btn btn-primary"
+                                style="border-radius: 50px; padding: 12px 20px; min-width: 50px;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </form>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small style="color: var(--dell-gray-500); font-size: 0.75rem;">
+                            <i class="fas fa-lock me-1"></i> Powered by AI · Dell service only
+                        </small>
+                        <button onclick="resetChat()" class="btn btn-link btn-sm p-0" style="font-size: 0.75rem; color: var(--dell-gray-500);">
+                            <i class="fas fa-redo me-1"></i> New conversation
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Cards Below Chat -->
+            <div class="row g-3 mt-4">
+                <div class="col-md-4">
+                    <div class="text-center p-3" style="background: var(--dell-blue-light); border-radius: var(--radius-md);">
+                        <i class="fas fa-clock fa-lg mb-2" style="color: var(--dell-blue);"></i>
+                        <h6 style="font-weight: 600; font-size: 0.85rem;">Quick Turnaround</h6>
+                        <p style="font-size: 0.8rem; color: var(--dell-gray-500); margin: 0;">2-5 business days</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3" style="background: var(--dell-blue-light); border-radius: var(--radius-md);">
+                        <i class="fas fa-certificate fa-lg mb-2" style="color: var(--dell-blue);"></i>
+                        <h6 style="font-weight: 600; font-size: 0.85rem;">Genuine Parts</h6>
+                        <p style="font-size: 0.8rem; color: var(--dell-gray-500); margin: 0;">Dell certified components</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3" style="background: var(--dell-blue-light); border-radius: var(--radius-md);">
+                        <i class="fas fa-shield-alt fa-lg mb-2" style="color: var(--dell-blue);"></i>
+                        <h6 style="font-weight: 600; font-size: 0.85rem;">90-Day Warranty</h6>
+                        <p style="font-size: 0.8rem; color: var(--dell-gray-500); margin: 0;">On all repairs</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,198 +113,248 @@
 </div>
 
 <style>
-    #chatArea::-webkit-scrollbar { width: 6px; }
-    #chatArea::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-    .bot-msg { animation: fadeIn 0.3s ease-in; }
-    .user-msg { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-bubble {
+        padding: 14px 18px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+        animation: fadeInUp 0.3s ease;
+        max-width: 85%;
+    }
+    .chat-bubble.bot {
+        background: white;
+        border: 1px solid var(--dell-gray-300);
+        border-bottom-left-radius: 4px;
+        margin-right: auto;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .chat-bubble.user {
+        background: var(--dell-blue);
+        color: white;
+        border-bottom-right-radius: 4px;
+        margin-left: auto;
+    }
+    .chat-bubble.user p { color: white; }
+    .chat-bubble.typing {
+        background: white;
+        border: 1px solid var(--dell-gray-300);
+        border-bottom-left-radius: 4px;
+        margin-right: auto;
+    }
+    .typing-dots span {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--dell-gray-500);
+        margin: 0 2px;
+        animation: bounce 1.4s infinite ease-in-out;
+    }
+    .typing-dots span:nth-child(1) { animation-delay: 0s; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .chip-btn {
+        background: white;
+        border: 1px solid var(--dell-gray-300);
+        border-radius: 50px;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        color: var(--dell-gray-700);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chip-btn:hover {
+        background: var(--dell-blue-light);
+        border-color: var(--dell-blue);
+        color: var(--dell-blue);
+    }
+    #chatMessages::-webkit-scrollbar {
+        width: 6px;
+    }
+    #chatMessages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #chatMessages::-webkit-scrollbar-thumb {
+        background: var(--dell-gray-300);
+        border-radius: 3px;
+    }
+    /* Markdown-like formatting in bot responses */
+    .bot-text ul, .bot-text ol {
+        padding-left: 18px;
+        margin: 8px 0;
+    }
+    .bot-text li {
+        margin-bottom: 4px;
+    }
+    .bot-text strong {
+        color: var(--dell-blue-dark);
+    }
 </style>
 
 <script>
-    let selectedModel = "";
-    let selectedParts = [];
-    let totalEstimate = 0;
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const quickChips = document.getElementById('quickChips');
 
-    function addBotMessage(html) {
-        const chatArea = document.getElementById("chatArea");
-        const msg = `
-            <div class="d-flex mb-3 bot-msg">
-                <div class="bot-avatar me-2"><i class="fas fa-robot text-primary fa-lg"></i></div>
-                <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">${html}</div>
-            </div>`;
-        chatArea.innerHTML += msg;
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
+function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
 
-    function addUserMessage(text) {
-        const chatArea = document.getElementById("chatArea");
-        const msg = `
-            <div class="d-flex mb-3 justify-content-end user-msg">
-                <div class="bg-primary text-white p-3 rounded shadow-sm" style="max-width: 80%;">${text}</div>
-            </div>`;
-        chatArea.innerHTML += msg;
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
+function addMessage(content, role) {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${role}`;
 
-    function selectModel() {
-        const select = document.getElementById("modelSelect");
-        selectedModel = select.value;
-
-        if (!selectedModel) {
-            alert("Please select a model!");
-            return;
-        }
-
-        addUserMessage(`My laptop model is: <strong>${selectedModel}</strong>`);
-
-        // Fetch parts for this model
-        fetch(`/service/parts?model=${encodeURIComponent(selectedModel)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.parts && data.parts.length > 0) {
-                    addBotMessage(`Got it! I found <strong>${data.parts.length} serviceable parts</strong> for ${selectedModel}.<br><br>Which part needs repair or replacement?`);
-
-                    // Populate parts dropdown
-                    const partSelect = document.getElementById("partSelect");
-                    partSelect.innerHTML = '<option value="">-- Choose a part --</option>';
-                    data.parts.forEach(part => {
-                        partSelect.innerHTML += `<option value="${part.part}" data-price="${part.price}" data-labour="${part.labour_charge}">${part.part}</option>`;
-                    });
-
-                    document.getElementById("step1").style.display = "none";
-                    document.getElementById("step2").style.display = "block";
-                } else {
-                    addBotMessage("Sorry, I don't have parts data for this model yet. Please contact us directly.");
-                }
-            });
-    }
-
-    function selectPart() {
-        const select = document.getElementById("partSelect");
-        const partName = select.value;
-
-        if (!partName) {
-            alert("Please select a part!");
-            return;
-        }
-
-        const option = select.options[select.selectedIndex];
-        const price = parseFloat(option.dataset.price);
-        const labour = parseFloat(option.dataset.labour);
-        const total = price + labour;
-
-        addUserMessage(`Part: <strong>${partName}</strong>`);
-
-        selectedParts.push({ part: partName, price: price, labour: labour, total: total });
-        totalEstimate += total;
-
-        let html = `<strong>Estimated Cost for ${partName}:</strong><br><br>
-            <table class="table table-sm table-bordered mb-2" style="font-size: 0.9rem;">
-                <tr><td>Part Cost</td><td class="text-end">&#8377;${price.toLocaleString()}</td></tr>
-                <tr><td>Labour Charge</td><td class="text-end">&#8377;${labour.toLocaleString()}</td></tr>
-                <tr class="table-primary fw-bold"><td>Total</td><td class="text-end">&#8377;${total.toLocaleString()}</td></tr>
-            </table>`;
-
-        if (selectedParts.length > 1) {
-            html += `<p class="mb-0"><strong>Grand Total (${selectedParts.length} parts):</strong> &#8377;${totalEstimate.toLocaleString()}</p>`;
-        }
-
-        html += `<p class="mb-0 mt-2 text-muted small">*Prices are approximate. Final cost may vary after inspection.</p>`;
-
-        addBotMessage(html);
-
-        addBotMessage("Would you like to <strong>add another part</strong>, <strong>submit a service request</strong>, or <strong>start over</strong>?");
-
-        document.getElementById("step2").style.display = "none";
-        document.getElementById("step3").style.display = "block";
-    }
-
-    function addAnotherPart() {
-        document.getElementById("step3").style.display = "none";
-        document.getElementById("step2").style.display = "block";
-        addUserMessage("I want to add another part.");
-        addBotMessage("Sure! Select the next part that needs repair.");
-    }
-
-    function submitServiceRequest() {
-        addUserMessage("I'd like to submit a service request.");
-
-        let summary = `<strong>Service Request Summary:</strong><br><br>
-            <strong>Model:</strong> ${selectedModel}<br>
-            <strong>Parts:</strong><br>`;
-        selectedParts.forEach(p => {
-            summary += `&nbsp;&nbsp;• ${p.part} — &#8377;${p.total.toLocaleString()}<br>`;
-        });
-        summary += `<br><strong>Estimated Total: &#8377;${totalEstimate.toLocaleString()}</strong>`;
-        summary += `<br><br>Please provide your contact details below to book the service.`;
-
-        addBotMessage(summary);
-
-        document.getElementById("step3").style.display = "none";
-        document.getElementById("step4").style.display = "block";
-    }
-
-    function confirmRequest() {
-        const name = document.getElementById("custName").value;
-        const phone = document.getElementById("custPhone").value;
-        const issue = document.getElementById("custIssue").value;
-
-        if (!name || !phone) {
-            alert("Please provide your name and phone number!");
-            return;
-        }
-
-        addUserMessage(`Name: ${name}<br>Phone: ${phone}${issue ? '<br>Issue: ' + issue : ''}`);
-
-        // Send to backend
-        fetch("/service/submit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: name,
-                phone: phone,
-                issue: issue,
-                model: selectedModel,
-                parts: selectedParts,
-                total_estimate: totalEstimate
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                addBotMessage(`<div class="text-success">
-                    <i class="fas fa-check-circle fa-2x mb-2"></i><br>
-                    <strong>Service request submitted!</strong><br><br>
-                    Request ID: <strong>#${data.request_id}</strong><br>
-                    We'll contact you at <strong>${phone}</strong> within 24 hours to schedule the repair.<br><br>
-                    <em>Thank you for choosing our store!</em>
-                </div>`);
-            } else {
-                addBotMessage("Something went wrong. Please try again or call us directly.");
-            }
-        });
-
-        document.getElementById("step4").style.display = "none";
-    }
-
-    function resetChat() {
-        selectedModel = "";
-        selectedParts = [];
-        totalEstimate = 0;
-
-        document.getElementById("chatArea").innerHTML = `
-            <div class="d-flex mb-3">
-                <div class="bot-avatar me-2"><i class="fas fa-robot text-primary fa-lg"></i></div>
-                <div class="bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
-                    <p class="mb-0">Hello! I'm your Dell Service Assistant. I can help you get a repair cost estimate.</p>
-                    <p class="mb-0 mt-2">Please select your <strong>laptop model</strong> below to get started.</p>
+    if (role === 'user') {
+        bubble.innerHTML = `<p style="margin: 0; font-size: 0.9rem;">${escapeHtml(content)}</p>`;
+    } else {
+        // Format bot response (basic markdown → HTML)
+        const formattedContent = formatBotResponse(content);
+        bubble.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+                <div style="width: 28px; height: 28px; background: var(--dell-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-wrench" style="color: white; font-size: 0.7rem;"></i>
                 </div>
+                <div class="bot-text" style="font-size: 0.9rem; line-height: 1.6;">${formattedContent}</div>
             </div>`;
-
-        document.getElementById("step1").style.display = "block";
-        document.getElementById("step2").style.display = "none";
-        document.getElementById("step3").style.display = "none";
-        document.getElementById("step4").style.display = "none";
     }
+
+    chatMessages.appendChild(bubble);
+    scrollToBottom();
+}
+
+function addTypingIndicator() {
+    const typing = document.createElement('div');
+    typing.className = 'chat-bubble typing';
+    typing.id = 'typingIndicator';
+    typing.innerHTML = `
+        <div class="d-flex align-items-center gap-2">
+            <div style="width: 28px; height: 28px; background: var(--dell-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fas fa-wrench" style="color: white; font-size: 0.7rem;"></i>
+            </div>
+            <div class="typing-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>`;
+    chatMessages.appendChild(typing);
+    scrollToBottom();
+}
+
+function removeTypingIndicator() {
+    const typing = document.getElementById('typingIndicator');
+    if (typing) typing.remove();
+}
+
+function formatBotResponse(text) {
+    // Convert markdown-style formatting to HTML
+    let html = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')      // **bold**
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')                   // *italic*
+        .replace(/_(.*?)_/g, '<em>$1</em>')                     // _italic_
+        .replace(/`(.*?)`/g, '<code>$1</code>')                 // `code`
+        .replace(/^• (.+)/gm, '<li>$1</li>')                    // • bullet
+        .replace(/^- (.+)/gm, '<li>$1</li>')                    // - bullet
+        .replace(/^(\d+)\. (.+)/gm, '<li>$2</li>')             // 1. numbered
+        .replace(/\n/g, '<br>');                                 // newlines
+
+    // Wrap consecutive <li> in <ul>
+    html = html.replace(/(<li>.*?<\/li>(<br>)?)+/g, (match) => {
+        return '<ul>' + match.replace(/<br>/g, '') + '</ul>';
+    });
+
+    return html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function sendMessage(event) {
+    if (event) event.preventDefault();
+
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    // Disable input while processing
+    chatInput.value = '';
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+
+    // Hide quick chips after first message
+    quickChips.style.display = 'none';
+
+    // Add user message
+    addMessage(message, 'user');
+
+    // Show typing indicator
+    addTypingIndicator();
+
+    try {
+        const response = await fetch('/service/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        });
+
+        const data = await response.json();
+        removeTypingIndicator();
+
+        if (data.reply) {
+            addMessage(data.reply, 'bot');
+        } else if (data.error) {
+            addMessage('Sorry, something went wrong. Please try again.', 'bot');
+        }
+    } catch (error) {
+        removeTypingIndicator();
+        addMessage('Connection error. Please check your internet and try again.', 'bot');
+    }
+
+    // Re-enable input
+    chatInput.disabled = false;
+    sendBtn.disabled = false;
+    chatInput.focus();
+}
+
+function sendQuickMessage(message) {
+    chatInput.value = message;
+    sendMessage(null);
+}
+
+async function resetChat() {
+    try {
+        await fetch('/service/chat/reset', { method: 'POST' });
+    } catch (e) {}
+
+    // Clear chat UI except welcome message
+    chatMessages.innerHTML = `
+        <div class="chat-bubble bot">
+            <div class="d-flex align-items-start gap-2">
+                <div style="width: 32px; height: 32px; background: var(--dell-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-wrench" style="color: white; font-size: 0.8rem;"></i>
+                </div>
+                <div>
+                    <strong style="font-size: 0.8rem; color: var(--dell-blue);">Dell Service Bot</strong>
+                    <p style="margin: 4px 0 0; font-size: 0.9rem;">
+                        👋 Conversation reset! How can I help you with your Dell device?
+                    </p>
+                </div>
+            </div>
+        </div>`;
+
+    // Show quick chips again
+    quickChips.style.display = 'block';
+}
+
+// Auto-focus input on load
+chatInput.focus();
 </script>
 {% endblock %}
