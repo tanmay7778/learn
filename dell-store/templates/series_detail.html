@@ -23,13 +23,13 @@
                     <!-- Current Series Header -->
                     <div class="series-sidebar-current">
                         <span class="series-sidebar-name">DELL {{ series.name|upper }}</span>
-                        <a href="{{ url_for('products', category='laptop', series=series.name) }}" class="series-sidebar-arrow">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
+                        <button class="series-sidebar-arrow" id="sidebarToggleBtn" onclick="toggleSidebarLinks()">
+                            <i class="fas fa-chevron-down" id="sidebarArrowIcon"></i>
+                        </button>
                     </div>
 
-                    <!-- Explore Other Series -->
-                    <div class="series-sidebar-links">
+                    <!-- Explore Other Series (collapsible) -->
+                    <div class="series-sidebar-links" id="sidebarLinks">
                         <p class="series-sidebar-heading">EXPLORE OTHER SERIES</p>
                         <ul>
                             <li><a href="{{ url_for('laptops_page') }}">All Dell Laptops</a></li>
@@ -178,6 +178,11 @@
     padding: 18px 20px;
     border-bottom: 1px solid var(--dell-gray-300);
     background: var(--dell-white);
+    cursor: pointer;
+}
+
+.series-sidebar-current.collapsed {
+    border-bottom: none;
 }
 
 .series-sidebar-name {
@@ -196,7 +201,8 @@
     align-items: center;
     justify-content: center;
     color: var(--dell-gray-700);
-    text-decoration: none;
+    background: transparent;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
@@ -206,8 +212,26 @@
     color: white;
 }
 
+.series-sidebar-arrow i {
+    transition: transform 0.3s ease;
+}
+
+.series-sidebar-arrow.collapsed i {
+    transform: rotate(-90deg);
+}
+
 .series-sidebar-links {
     padding: 16px 20px 20px;
+    max-height: 300px;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.25s ease;
+    opacity: 1;
+}
+
+.series-sidebar-links.collapsed {
+    max-height: 0;
+    padding: 0 20px;
+    opacity: 0;
 }
 
 .series-sidebar-heading {
@@ -294,9 +318,10 @@
 }
 </style>
 
-<!-- Scroll Reveal Script -->
+<!-- Scroll Reveal + Sidebar Toggle Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Scroll reveal
     const revealElements = document.querySelectorAll('.reveal-left, .reveal-right');
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -308,5 +333,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
     revealElements.forEach(el => observer.observe(el));
 });
+
+// Sidebar collapse toggle
+function toggleSidebarLinks() {
+    const links = document.getElementById('sidebarLinks');
+    const btn = document.getElementById('sidebarToggleBtn');
+    const header = document.querySelector('.series-sidebar-current');
+
+    links.classList.toggle('collapsed');
+    btn.classList.toggle('collapsed');
+    header.classList.toggle('collapsed');
+}
 </script>
 {% endblock %}
