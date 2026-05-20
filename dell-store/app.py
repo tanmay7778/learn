@@ -764,23 +764,327 @@ def call_gemini_api(messages, parts_context):
 
 
 # ==========================================
-# LLM ROUTER — picks provider based on config
+# LOCAL FALLBACK CHATBOT (no API needed)
+# ==========================================
+
+# Part keyword aliases for fuzzy matching
+PART_KEYWORDS = {
+    "screen": "Screen/Display",
+    "display": "Screen/Display",
+    "lcd": "Screen/Display",
+    "monitor": "Screen/Display",
+    "oled": "Screen/Display",
+    "keyboard": "Keyboard",
+    "kb": "Keyboard",
+    "keys": "Keyboard",
+    "battery": "Battery",
+    "bat": "Battery",
+    "charging": "Battery",
+    "motherboard": "Motherboard",
+    "mobo": "Motherboard",
+    "mainboard": "Motherboard",
+    "ram": "RAM",
+    "memory": "RAM",
+    "ssd": "SSD",
+    "storage": "SSD",
+    "hard drive": "SSD",
+    "harddrive": "SSD",
+    "disk": "SSD",
+    "charger": "Charger",
+    "adapter": "Charger",
+    "power": "Charger",
+    "touchpad": "Touchpad",
+    "trackpad": "Touchpad",
+    "fan": "Fan/Cooling",
+    "cooling": "Fan/Cooling",
+    "heating": "Fan/Cooling",
+    "overheat": "Fan/Cooling",
+    "hot": "Fan/Cooling",
+    "hinge": "Hinge",
+    "gpu": "GPU",
+    "graphics": "GPU",
+}
+
+# Model keyword aliases for fuzzy matching
+MODEL_KEYWORDS = {
+    "inspiron 15": "Dell Inspiron 15 3520",
+    "inspiron 3520": "Dell Inspiron 15 3520",
+    "3520": "Dell Inspiron 15 3520",
+    "inspiron 14": "Dell Inspiron 14 5430",
+    "inspiron 5430": "Dell Inspiron 14 5430",
+    "5430": "Dell Inspiron 14 5430",
+    "xps 13": "Dell XPS 13 9340",
+    "xps 9340": "Dell XPS 13 9340",
+    "9340": "Dell XPS 13 9340",
+    "xps 15": "Dell XPS 15 9530",
+    "xps 9530": "Dell XPS 15 9530",
+    "9530": "Dell XPS 15 9530",
+    "latitude": "Dell Latitude 5540",
+    "latitude 5540": "Dell Latitude 5540",
+    "5540": "Dell Latitude 5540",
+    "vostro": "Dell Vostro 3520",
+    "vostro 3520": "Dell Vostro 3520",
+}
+
+
+def call_local_bot(messages):
+    """
+    Rule-based fallback chatbot — works 100% offline.
+    Parses user messages for model + part keywords and returns pricing from Excel.
+    """
+    df = load_parts_data()
+    if df.empty:
+        return "Sorry, I couldn't load the parts database. Please try again later."
+
+    # Get the latest user message
+    user_msg = messages[-1]["content"].lower() if messages else ""
+
+    # Check for greetings (first message or explicit greeting)
+    greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "namaste"]
+    if len(messages) <= 1 or any(user_msg.strip() == g for g in greetings):
+        if any(user_msg.strip() == g or user_msg.strip().startswith(g) for g in greetings):
+            return (
+                "👋 Hello! Welcome to Dell Authorized Service Center.\n\n"
+                "I can help you get repair estimates for your Dell device. "
+                "Here are the models I have pricing for:\n\n"
+                "1. Dell Inspiron 15 3520\n"
+                "2. Dell Inspiron 14 5430\n"
+                "3. Dell XPS 13 9340\n"
+                "4. Dell XPS 15 9530\n"
+                "5. Dell Latitude 5540\n"
+                "6. Dell Vostro 3520\n\n"
+                "Please tell me your **model** and what **part** needs repair, "
+                "and I'll give you an instant estimate!\n\n"
+                "Example: \"I need a battery replacement for my Inspiron 3520\""
+            )
+
+    # Try to find model in the message (check longer phrases first)
+    detected_model = None
+    sorted_keys = sorted(MODEL_KEYWORDS.keys(), key=len, reverse=True)
+    for keyword in sorted_keys:
+        if keyword in user_msg:
+            detected_model = MODEL_KEYWORDS[keyword]
+            break
+
+    # Also check full model names from the dataframe
+    if not detected_model:
+        for model_name in df["model"].unique():
+            if model_name.lower() in user_msg:
+                detected_model = model_name
+                break
+
+    # Check conversation history for model context
+    if not detected_model:
+        for msg in reversed(messages[:-1]):
+            msg_lower = msg["content"].lower()
+            for keyword in sorted_keys:
+                if keyword in msg_lower:
+                    detected_model = MODEL_KEYWORDS[keyword]
+                    break
+            if detected_model:
+                break
+            for model_name in df["model"].unique():
+                if model_name.lower() in msg_lower:
+                    detected_model = model_name
+                    break
+            if detected_model:
+                break
+
+    # Try to find part in the message
+    detected_part_key = None
+    sorted_part_keys = sorted(PART_KEYWORDS.keys(), key=len, reverse=True)
+    for keyword in sorted_part_keys:
+        if keyword in user_msg:
+            detected_part_key = PART_KEYWORDS[keyword]
+            break
+
+    # Handle "all parts" / "price list" requests
+    if any(phrase in user_msg for phrase in ["all parts", "price list", "all prices", "full list", "what parts", "available parts"]):
+        if detected_model:
+            model_parts = df[df["model"] == detected_model]
+            if model_parts.empty:
+                return f"I don't have pricing data for {detected_model}. Please contact our service desk."
+            lines = [f"📋 **Parts & Pricing for {detected_model}:**\n"]
+            for _, row in model_parts.iterrows():
+                total = int(row["price"] + row["labour_charge"])
+                lines.append(f"• {row['part']}: ₹{int(row['price'])} + Labour ₹{int(row['labour_charge'])} = **₹{total}**")
+            lines.append("\n💡 Tell me which part you need and I can give you a detailed estimate!")
+            lines.append("Would you like to book a service request for any of these?")
+            return "\n".join(lines)
+        else:
+            return (
+                "I'd be happy to show you our parts pricing! Which model do you have?\n\n"
+                "1. Dell Inspiron 15 3520\n"
+                "2. Dell Inspiron 14 5430\n"
+                "3. Dell XPS 13 9340\n"
+                "4. Dell XPS 15 9530\n"
+                "5. Dell Latitude 5540\n"
+                "6. Dell Vostro 3520\n\n"
+                "Just type the model name or number."
+            )
+
+    # Handle warranty questions
+    if any(w in user_msg for w in ["warranty", "guarantee", "free repair", "covered"]):
+        return (
+            "📋 **Dell Warranty Information:**\n\n"
+            "• Standard Dell warranty: **1 year** from purchase date\n"
+            "• If your device is under warranty, repairs are **FREE** (parts + labour)\n"
+            "• Extended warranty (Dell Premium Support): Up to 4 years\n"
+            "• Accidental damage is NOT covered under standard warranty\n\n"
+            "To check your warranty status, you'll need your Dell Service Tag "
+            "(found on the bottom of your laptop).\n\n"
+            "Is your device under warranty, or would you like a paid repair estimate?"
+        )
+
+    # Handle service timing questions
+    if any(w in user_msg for w in ["how long", "time", "days", "when", "ready", "duration"]):
+        return (
+            "⏱️ **Service Timelines:**\n\n"
+            "• Standard repair: **2-5 business days**\n"
+            "• Screen/Display replacement: 1-2 days\n"
+            "• Battery replacement: Same day\n"
+            "• Motherboard repair: 3-5 days\n"
+            "• Emergency/same-day service: Available for additional ₹500\n\n"
+            "🕐 Walk-in hours: Mon-Sat, 10 AM - 8 PM\n\n"
+            "Would you like to know the cost for a specific repair?"
+        )
+
+    # Handle service request / booking
+    if any(w in user_msg for w in ["book", "submit", "request", "appointment", "schedule"]):
+        return (
+            "📝 **To submit a service request**, please provide:\n\n"
+            "1. Your **name**\n"
+            "2. Your **phone number**\n"
+            "3. Your Dell **model**\n"
+            "4. **Issue description** (which part needs repair)\n\n"
+            "You can also visit us directly:\n"
+            "🕐 Walk-in hours: Mon-Sat, 10 AM - 8 PM\n\n"
+            "Or tell me your model and issue, and I'll prepare an estimate first!"
+        )
+
+    # If we have both model and part — give the estimate
+    if detected_model and detected_part_key:
+        # Find matching rows (fuzzy match on part name)
+        model_parts = df[df["model"] == detected_model]
+        matching = model_parts[model_parts["part"].str.lower().str.contains(detected_part_key.lower().split("/")[0])]
+
+        if matching.empty:
+            # Try broader match
+            matching = model_parts[model_parts["part"].str.lower().str.contains(detected_part_key.lower().split("(")[0].strip().lower())]
+
+        if not matching.empty:
+            row = matching.iloc[0]
+            part_cost = int(row["price"])
+            labour = int(row["labour_charge"])
+            total = part_cost + labour
+            return (
+                f"🔧 **Repair Estimate for {detected_model}**\n\n"
+                f"**Part:** {row['part']} (Code: {row['part_code']})\n"
+                f"**Part Cost:** ₹{part_cost:,}\n"
+                f"**Labour Charge:** ₹{labour:,}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"**Total Estimate:** ₹{total:,}\n\n"
+                f"⏱️ Estimated time: 2-5 business days\n"
+                f"📍 Walk-in: Mon-Sat, 10 AM - 8 PM\n\n"
+                f"Would you like me to book a service request for this repair?"
+            )
+        else:
+            return (
+                f"I don't have specific pricing for that part on the {detected_model}. "
+                f"Here are the parts I have for this model:\n\n" +
+                "\n".join(f"• {row['part']}" for _, row in model_parts.iterrows()) +
+                "\n\nWhich one do you need?"
+            )
+
+    # If we have model but no part
+    if detected_model and not detected_part_key:
+        model_parts = df[df["model"] == detected_model]
+        if model_parts.empty:
+            return f"I don't have pricing data for {detected_model}. Please contact our service desk for a quote."
+        return (
+            f"Great! I can help with the **{detected_model}**. 👍\n\n"
+            f"What part needs repair? Here's what I have pricing for:\n\n" +
+            "\n".join(f"• {row['part']}" for _, row in model_parts.iterrows()) +
+            "\n\nJust tell me which part you need replaced or repaired!"
+        )
+
+    # If we have part but no model
+    if detected_part_key and not detected_model:
+        return (
+            f"I can help with a **{detected_part_key.split('/')[0]}** replacement! "
+            f"Which Dell model do you have?\n\n"
+            "1. Dell Inspiron 15 3520\n"
+            "2. Dell Inspiron 14 5430\n"
+            "3. Dell XPS 13 9340\n"
+            "4. Dell XPS 15 9530\n"
+            "5. Dell Latitude 5540\n"
+            "6. Dell Vostro 3520\n\n"
+            "Just type the model name or number."
+        )
+
+    # Handle "thank you" / goodbye
+    if any(w in user_msg for w in ["thank", "thanks", "bye", "goodbye", "ok done"]):
+        return (
+            "You're welcome! 😊 Happy to help.\n\n"
+            "If you need anything else — repair estimates, warranty info, or want to book a service — "
+            "just come back anytime!\n\n"
+            "🕐 Walk-in: Mon-Sat, 10 AM - 8 PM\n"
+            "📞 For urgent queries, call our service desk."
+        )
+
+    # Default fallback — couldn't understand
+    return (
+        "I'm your Dell Service Assistant and I can help with:\n\n"
+        "🔧 **Repair estimates** — Tell me your model + part (e.g., \"battery for XPS 13\")\n"
+        "📋 **Parts list** — Say \"show all parts for Inspiron 3520\"\n"
+        "📝 **Service booking** — Say \"book a service request\"\n"
+        "🛡️ **Warranty info** — Ask about warranty coverage\n"
+        "⏱️ **Repair timelines** — Ask \"how long does repair take?\"\n\n"
+        "**Supported models:** Inspiron 15 3520, Inspiron 14 5430, XPS 13 9340, "
+        "XPS 15 9530, Latitude 5540, Vostro 3520\n\n"
+        "How can I help you today?"
+    )
+
+
+# ==========================================
+# LLM ROUTER — tries provider, falls back to local bot
 # ==========================================
 
 
 def call_llm(messages, parts_context):
     """
     Route to the configured LLM provider.
+    If LLM fails, automatically falls back to local rule-based bot.
     Set LLM_PROVIDER in config.py: "databricks" or "gemini"
     """
     provider = app.config.get("LLM_PROVIDER", "databricks").lower()
 
+    # Try primary provider
+    reply, error = None, None
     if provider == "databricks":
-        return call_databricks_api(messages, parts_context)
+        reply, error = call_databricks_api(messages, parts_context)
     elif provider == "gemini":
-        return call_gemini_api(messages, parts_context)
+        reply, error = call_gemini_api(messages, parts_context)
     else:
-        return None, f"Unknown LLM_PROVIDER: '{provider}'. Use 'databricks' or 'gemini'."
+        error = f"Unknown LLM_PROVIDER: '{provider}'"
+
+    # If primary succeeded, return it
+    if reply and not error:
+        return reply, None
+
+    # Try the OTHER provider as secondary fallback
+    secondary_reply, secondary_error = None, None
+    if provider == "databricks":
+        secondary_reply, secondary_error = call_gemini_api(messages, parts_context)
+    elif provider == "gemini":
+        secondary_reply, secondary_error = call_databricks_api(messages, parts_context)
+
+    if secondary_reply and not secondary_error:
+        return secondary_reply, None
+
+    # Both LLMs failed — use local rule-based bot (always works)
+    local_reply = call_local_bot(messages)
+    return local_reply, None
 
 
 # ==========================================
@@ -796,7 +1100,7 @@ def service_page():
 
 @app.route("/service/chat", methods=["POST"])
 def service_chat():
-    """Handle chat messages — routes to configured LLM provider."""
+    """Handle chat messages — routes to LLM with local fallback."""
     data = request.get_json()
     if not data or not data.get("message"):
         return jsonify({"error": "No message provided"}), 400
@@ -810,20 +1114,13 @@ def service_chat():
 
     parts_context = get_parts_context()
 
-    # Call configured LLM
+    # Call LLM (with automatic fallback to local bot)
     reply, error = call_llm(chat_history, parts_context)
 
-    if error:
-        reply = (
-            "I'm having trouble connecting to my AI service right now. "
-            "But I can still help! Here are our supported models:\n\n"
-            "• Dell Inspiron 15 3520\n• Dell Inspiron 14 5430\n"
-            "• Dell XPS 13 9340\n• Dell XPS 15 9530\n"
-            "• Dell Latitude 5540\n• Dell Vostro 3520\n\n"
-            "Please tell me your model and what part needs repair, "
-            "and I'll look up the pricing for you.\n\n"
-            f"_(Technical note: {error})_"
-        )
+    # This shouldn't happen anymore since local bot always works,
+    # but just in case:
+    if not reply:
+        reply = call_local_bot(chat_history)
 
     chat_history.append({"role": "assistant", "content": reply})
 
