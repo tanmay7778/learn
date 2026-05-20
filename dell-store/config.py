@@ -7,4 +7,4 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Gemini API (free tier: https://aistudio.google.com/apikey)
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or "YOUR_GEMINI_API_KEY_HERE"
+    GEMINI_API_KEY = os.environ.get("AIzaSyBzD5kmSrOYGzRuQhqs9iUDLOjtKhK1Bdc") or "YOUR_GEMINI_API_KEY_HERE"
