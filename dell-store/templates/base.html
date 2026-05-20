@@ -50,7 +50,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('products', category='laptop') }}">
+                        <a class="nav-link" href="{{ url_for('laptops_page') }}">
                             <i class="fas fa-laptop me-1"></i> Laptops
                         </a>
                     </li>
@@ -133,7 +133,7 @@
                 <div class="col-lg-2 col-md-4 mb-4">
                     <h5>Products</h5>
                     <ul class="list-unstyled" style="line-height: 2.2;">
-                        <li><a href="{{ url_for('products', category='laptop') }}">Laptops</a></li>
+                        <li><a href="{{ url_for('laptops_page') }}">Laptops</a></li>
                         <li><a href="{{ url_for('products', category='desktop') }}">Desktops</a></li>
                         <li><a href="{{ url_for('products', category='all-in-one') }}">All-in-Ones</a></li>
                         <li><a href="{{ url_for('products') }}">View All</a></li>

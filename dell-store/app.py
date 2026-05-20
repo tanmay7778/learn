@@ -56,6 +56,12 @@ def index():
     return render_template("index.html", products=featured)
 
 
+@app.route("/laptops")
+def laptops_page():
+    """Laptop series landing page — shows Inspiron, Vostro, XPS, Alienware cards."""
+    return render_template("laptops.html")
+
+
 @app.route("/products")
 def products():
     category = request.args.get("category", "all")
