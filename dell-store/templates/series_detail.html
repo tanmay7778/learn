@@ -121,14 +121,14 @@
                 </div>
             </div>
             <div class="col-lg-7">
-                <div class="feature-image reveal-right">
+                <div class="feature-image reveal-right" style="background: var(--dell-gray-100);">
                     <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
                 </div>
             </div>
             {% else %}
             <!-- Image left, Text right -->
             <div class="col-lg-7 order-lg-1 order-2">
-                <div class="feature-image reveal-left">
+                <div class="feature-image reveal-left" style="background: var(--dell-white);">
                     <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
                 </div>
             </div>
@@ -249,6 +249,7 @@
 .series-hero-title { font-size: 3rem; font-weight: 900; letter-spacing: -2px; color: var(--dell-gray-900); margin-bottom: 4px; }
 .series-hero-tagline { font-size: 1rem; font-weight: 600; color: var(--dell-blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
 .series-hero-desc { font-size: 1rem; color: var(--dell-gray-500); line-height: 1.8; max-width: 400px; }
+.series-hero-image { background: var(--dell-gray-100); border-radius: 8px; padding: 10px; }
 .series-hero-image img { max-height: 340px; max-width: 100%; object-fit: contain; mix-blend-mode: multiply; animation: floatHero 6s ease-in-out infinite; }
 @keyframes floatHero { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
 
@@ -267,7 +268,7 @@
 .feature-text { font-size: 1rem; color: var(--dell-gray-500); line-height: 1.8; margin-bottom: 24px; max-width: 450px; }
 .feature-link { color: var(--dell-blue); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: all 0.3s ease; }
 .feature-link:hover { color: var(--dell-blue-dark); text-decoration: underline; }
-.feature-image { text-align: center; }
+.feature-image { text-align: center; border-radius: 8px; padding: 10px; }
 .feature-image img { max-width: 100%; max-height: 420px; object-fit: contain; mix-blend-mode: multiply; }
 
 /* ====== SCROLL REVEAL ANIMATIONS ====== */
