@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Product, User, Order, OrderItem, Review
+from models import db, Product, User, Order, OrderItem, Review, ProductImage
 from config import Config
 
 # Suppress SSL warnings (corporate proxy intercepts HTTPS)
@@ -83,7 +83,13 @@ def products():
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_at.desc()).all()
-    return render_template("product_detail.html", product=product, reviews=reviews)
+    # Get all images for this product (from ProductImage table + legacy image_url)
+    product_images = ProductImage.query.filter_by(product_id=product_id).order_by(ProductImage.display_order).all()
+    image_urls = [img.image_url for img in product_images]
+    # Fallback: if no images in ProductImage table, use the legacy image_url field
+    if not image_urls and product.image_url:
+        image_urls = [product.image_url]
+    return render_template("product_detail.html", product=product, reviews=reviews, product_images=image_urls)
 
 
 # ==========================================
@@ -261,30 +267,112 @@ def update_stock(product_id):
 @app.route("/admin/upload-image/<int:product_id>", methods=["POST"])
 @login_required
 def upload_image(product_id):
+    """Upload one or multiple images for a product (stored in ProductImage table)."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
     product = Product.query.get_or_404(product_id)
 
-    if "image" not in request.files:
-        flash("No file selected!", "error")
+    files = request.files.getlist("image")
+    if not files or all(f.filename == "" for f in files):
+        flash("No files selected!", "error")
         return redirect(url_for("admin_panel"))
 
-    file = request.files["image"]
-    if file.filename == "":
-        flash("No file selected!", "error")
-        return redirect(url_for("admin_panel"))
+    # Get current max display_order for this product
+    max_order = db.session.query(db.func.max(ProductImage.display_order)).filter_by(product_id=product_id).scalar() or 0
+    uploaded_count = 0
 
-    if file and allowed_file(file.filename):
-        ext = file.filename.rsplit(".", 1)[1].lower()
-        filename = secure_filename(f"product_{product_id}.{ext}")
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
-        product.image_url = url_for("static", filename=f"images/products/{filename}")
+    for file in files:
+        if file and file.filename and allowed_file(file.filename):
+            ext = file.filename.rsplit(".", 1)[1].lower()
+            # Unique filename: product_<id>_<timestamp>_<index>.<ext>
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = secure_filename(f"product_{product_id}_{timestamp}_{uploaded_count}.{ext}")
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(filepath)
+
+            img_url = url_for("static", filename=f"images/products/{filename}")
+            max_order += 1
+
+            # Check if this is the first image (make it primary)
+            is_first = (ProductImage.query.filter_by(product_id=product_id).count() == 0 and uploaded_count == 0)
+
+            img_record = ProductImage(
+                product_id=product_id,
+                image_url=img_url,
+                is_primary=is_first,
+                display_order=max_order,
+            )
+            db.session.add(img_record)
+
+            # Also set the product's thumbnail (first uploaded image)
+            if is_first or not product.image_url:
+                product.image_url = img_url
+
+            uploaded_count += 1
+
+    if uploaded_count > 0:
         db.session.commit()
-        flash(f"Image uploaded for {product.name}!", "success")
+        flash(f"{uploaded_count} image(s) uploaded for {product.name}!", "success")
     else:
-        flash("Invalid file type!", "error")
+        flash("No valid image files found!", "error")
 
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/admin/delete-image/<int:image_id>", methods=["POST"])
+@login_required
+def delete_image(image_id):
+    """Delete a specific product image."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    img = ProductImage.query.get_or_404(image_id)
+    product = img.product
+
+    # Try to delete the file from disk
+    if img.image_url:
+        # Convert URL path to filesystem path
+        relative_path = img.image_url.replace("/static/", "")
+        file_path = os.path.join(app.static_folder, relative_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    # If this was the primary image, reassign primary
+    was_primary = img.is_primary
+    db.session.delete(img)
+    db.session.commit()
+
+    if was_primary:
+        # Set next image as primary
+        next_img = ProductImage.query.filter_by(product_id=product.id).order_by(ProductImage.display_order).first()
+        if next_img:
+            next_img.is_primary = True
+            product.image_url = next_img.image_url
+        else:
+            product.image_url = None
+        db.session.commit()
+
+    flash("Image deleted.", "success")
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/admin/set-primary-image/<int:image_id>", methods=["POST"])
+@login_required
+def set_primary_image(image_id):
+    """Set a specific image as the primary/thumbnail image."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    img = ProductImage.query.get_or_404(image_id)
+    product = img.product
+
+    # Unset all primary flags for this product
+    ProductImage.query.filter_by(product_id=product.id).update({"is_primary": False})
+    img.is_primary = True
+    product.image_url = img.image_url
+    db.session.commit()
+
+    flash("Primary image updated!", "success")
     return redirect(url_for("admin_panel"))
 
 

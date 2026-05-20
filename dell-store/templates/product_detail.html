@@ -13,12 +13,58 @@
     </nav>
 
     <div class="row g-5">
-        <!-- Product Image -->
+        <!-- Product Image Slider -->
         <div class="col-lg-5">
+            {% if product_images and product_images|length > 1 %}
+            <!-- Multi-image Carousel -->
+            <div id="productCarousel" class="carousel slide product-carousel" data-bs-ride="false">
+                <!-- Main Slides -->
+                <div class="carousel-inner">
+                    {% for img_url in product_images %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <div class="product-detail-img">
+                            <img src="{{ img_url }}" class="img-fluid" alt="{{ product.name }} - Image {{ loop.index }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Prev/Next arrows -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"
+                          style="background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 36px; height: 36px; background-size: 50%;"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"
+                          style="background-color: rgba(0,0,0,0.4); border-radius: 50%; width: 36px; height: 36px; background-size: 50%;"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+
+                <!-- Image counter badge -->
+                <div style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">
+                    <i class="fas fa-images me-1"></i> <span id="slideCounter">1</span>/{{ product_images|length }}
+                </div>
+            </div>
+
+            <!-- Thumbnail strip -->
+            <div class="product-thumbnails mt-3 d-flex gap-2 justify-content-center flex-wrap">
+                {% for img_url in product_images %}
+                <div class="thumb-item {% if loop.first %}active{% endif %}" data-bs-target="#productCarousel" data-bs-slide-to="{{ loop.index0 }}"
+                     style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid {% if loop.first %}var(--dell-blue){% else %}var(--dell-gray-300){% endif %}; transition: all 0.2s ease;">
+                    <img src="{{ img_url }}" alt="Thumb {{ loop.index }}" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;">
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- Single image (fallback) -->
             <div class="product-detail-img">
-                <img src="{{ product.image_url or 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
+                <img src="{{ product_images[0] if product_images else 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
                      class="img-fluid" alt="{{ product.name }}">
             </div>
+            {% endif %}
+
             {% if product.discount_percent and product.discount_percent > 0 %}
             <div class="text-center mt-3">
                 <span class="badge" style="background: var(--dell-orange); color: white; padding: 8px 16px; font-size: 0.9rem; border-radius: 50px;">
@@ -139,4 +185,62 @@
         </div>
     </div>
 </div>
+
+<!-- Carousel thumbnail sync script -->
+{% if product_images and product_images|length > 1 %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.getElementById('productCarousel');
+    const thumbs = document.querySelectorAll('.thumb-item');
+    const counter = document.getElementById('slideCounter');
+
+    carousel.addEventListener('slid.bs.carousel', function(e) {
+        // Update counter
+        counter.textContent = e.to + 1;
+        // Update active thumbnail
+        thumbs.forEach((t, i) => {
+            t.style.borderColor = (i === e.to) ? 'var(--dell-blue)' : 'var(--dell-gray-300)';
+            t.classList.toggle('active', i === e.to);
+        });
+    });
+
+    // Click on thumbnail to navigate
+    thumbs.forEach((thumb, index) => {
+        thumb.addEventListener('click', function() {
+            const bsCarousel = bootstrap.Carousel.getOrCreateInstance(carousel);
+            bsCarousel.to(index);
+        });
+    });
+});
+</script>
+
+<style>
+.product-carousel .carousel-inner {
+    border-radius: var(--radius-md);
+    background: var(--dell-gray-100);
+}
+.product-carousel .product-detail-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    padding: 24px;
+}
+.product-carousel .product-detail-img img {
+    max-height: 320px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+.product-carousel .product-detail-img img:hover {
+    transform: scale(1.05);
+}
+.thumb-item:hover {
+    border-color: var(--dell-blue) !important;
+    transform: scale(1.05);
+}
+.thumb-item.active {
+    box-shadow: 0 0 0 2px var(--dell-blue-light);
+}
+</style>
+{% endif %}
 {% endblock %}

@@ -1,5 +1,51 @@
 {% extends "base.html" %}
-{% block title %}Admin Panel - Dell Store{% endblock %}
+{% block title %}Admin Panel - Dell Store
+<!-- IMAGE MANAGEMENT MODALS -->
+{% for product in products %}
+{% if product.images %}
+<div class="modal fade" id="imagesModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-images"></i> Images: {{ product.name[:35] }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    {% for img in product.images %}
+                    <div class="col-md-4">
+                        <div class="card h-100" style="border: 2px solid {% if img.is_primary %}var(--dell-blue){% else %}var(--dell-gray-300){% endif %};">
+                            <img src="{{ img.image_url }}" class="card-img-top" alt="Image {{ loop.index }}"
+                                 style="height: 150px; object-fit: contain; padding: 10px; background: var(--dell-gray-100);">
+                            <div class="card-body p-2 text-center">
+                                {% if img.is_primary %}
+                                <span class="badge bg-primary mb-1"><i class="fas fa-star"></i> Primary</span>
+                                {% else %}
+                                <form action="{{ url_for('set_primary_image', image_id=img.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary mb-1" title="Set as primary">
+                                        <i class="far fa-star"></i> Set Primary
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('delete_image', image_id=img.id) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Delete this image?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -96,11 +142,17 @@
                         </form>
                     </td>
                     <td>
-                        <form action="{{ url_for('upload_image', product_id=product.id) }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center">
-                            <input type="file" name="image" accept=".png,.jpg,.jpeg,.webp,.gif"
-                                   class="form-control form-control-sm" style="width: 150px;">
-                            <button type="submit" class="btn btn-sm btn-success ms-1"><i class="fas fa-upload"></i></button>
+                        <form action="{{ url_for('upload_image', product_id=product.id) }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-1">
+                            <input type="file" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" multiple
+                                   class="form-control form-control-sm" style="width: 140px;">
+                            <button type="submit" class="btn btn-sm btn-success" title="Upload"><i class="fas fa-upload"></i></button>
                         </form>
+                        {% if product.images %}
+                        <small class="text-muted mt-1 d-block">
+                            <i class="fas fa-images"></i> {{ product.images|length }} image(s)
+                            <a href="#" class="ms-1 text-primary" data-bs-toggle="modal" data-bs-target="#imagesModal{{ product.id }}">Manage</a>
+                        </small>
+                        {% endif %}
                     </td>
                     <td>
                         <form action="{{ url_for('delete_product', product_id=product.id) }}" method="POST"
@@ -208,4 +260,50 @@
         </div>
     </div>
 </div>
+
+<!-- IMAGE MANAGEMENT MODALS -->
+{% for product in products %}
+{% if product.images %}
+<div class="modal fade" id="imagesModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-images"></i> Images: {{ product.name[:35] }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    {% for img in product.images %}
+                    <div class="col-md-4">
+                        <div class="card h-100" style="border: 2px solid {% if img.is_primary %}var(--dell-blue){% else %}var(--dell-gray-300){% endif %};">
+                            <img src="{{ img.image_url }}" class="card-img-top" alt="Image {{ loop.index }}"
+                                 style="height: 150px; object-fit: contain; padding: 10px; background: var(--dell-gray-100);">
+                            <div class="card-body p-2 text-center">
+                                {% if img.is_primary %}
+                                <span class="badge bg-primary mb-1"><i class="fas fa-star"></i> Primary</span>
+                                {% else %}
+                                <form action="{{ url_for('set_primary_image', image_id=img.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary mb-1" title="Set as primary">
+                                        <i class="far fa-star"></i> Set Primary
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('delete_image', image_id=img.id) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Delete this image?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
 {% endblock %}

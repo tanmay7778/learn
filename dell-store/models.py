@@ -30,7 +30,7 @@ class Product(db.Model):
     discount_percent = db.Column(db.Float)  # Auto-calculated
 
     # Images & links
-    image_url = db.Column(db.String(500))
+    image_url = db.Column(db.String(500))  # Primary/thumbnail image (backward compat)
     dell_url = db.Column(db.String(500))  # Original Dell page
 
     # Stock
@@ -44,6 +44,20 @@ class Product(db.Model):
     # Relationships
     order_items = db.relationship("OrderItem", backref="product", lazy=True)
     reviews = db.relationship("Review", backref="product", lazy=True)
+    images = db.relationship("ProductImage", backref="product", lazy=True,
+                             order_by="ProductImage.display_order")
+
+
+# ---- PRODUCT IMAGE MODEL (Multiple images per product) ----
+class ProductImage(db.Model):
+    __tablename__ = "product_images"
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
+    image_url = db.Column(db.String(500), nullable=False)
+    is_primary = db.Column(db.Boolean, default=False)  # Featured image for listing
+    display_order = db.Column(db.Integer, default=0)  # Sort order in slider
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ---- USER MODEL ----
