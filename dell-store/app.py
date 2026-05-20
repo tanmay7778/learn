@@ -29,6 +29,9 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 SERIES_FOLDER = os.path.join(app.static_folder, "images", "series")
 os.makedirs(SERIES_FOLDER, exist_ok=True)
+# Per-series image folders
+for _series in ["inspiron", "vostro", "xps", "alienware"]:
+    os.makedirs(os.path.join(SERIES_FOLDER, _series), exist_ok=True)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
@@ -62,6 +65,122 @@ def index():
 def laptops_page():
     """Laptop series landing page — shows Inspiron, Vostro, XPS, Alienware cards."""
     return render_template("laptops.html")
+
+
+# Series-specific detail pages (Inspiron, Vostro, XPS, Alienware)
+SERIES_INFO = {
+    "inspiron": {
+        "name": "Inspiron",
+        "tagline": "Everyday Performance",
+        "hero_desc": "Designed for everyday life — from schoolwork to entertainment, Inspiron laptops deliver reliable performance at an incredible value.",
+        "features": [
+            {
+                "title": "Designed for productivity",
+                "desc": "Maximize productivity with state-of-the-art processors, anti-glare displays and multiple ports for easy connection. Connect with confidence using webcams with Temporal Noise Reduction.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Vibrant visuals",
+                "desc": "Immerse yourself in stunning clarity with FHD and FHD+ displays. Wide viewing angles and ComfortView Plus reduce blue light to keep your eyes comfortable during long sessions.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "All-day battery",
+                "desc": "Stay unplugged longer with batteries built for all-day use. ExpressCharge technology gets you back to 80% in just 60 minutes when you need a quick top-up.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "vostro": {
+        "name": "Vostro",
+        "tagline": "Business Essential",
+        "hero_desc": "Purpose-built for small business. Enhanced security features, durable design, and professional-grade performance to help your business thrive.",
+        "features": [
+            {
+                "title": "Built for business",
+                "desc": "Hardware TPM 2.0, fingerprint reader, and Dell Optimizer keep your data secure while intelligently optimizing performance based on how you work.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Reliable & durable",
+                "desc": "MIL-STD tested for reliability with reinforced hinges, spill-resistant keyboard, and rubberized edges. Built to survive the daily rigors of business life.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Smart connectivity",
+                "desc": "Wi-Fi 6E and optional 4G LTE keep you connected everywhere. Multiple USB-C and HDMI ports for seamless multi-monitor setups at your desk.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "xps": {
+        "name": "XPS",
+        "tagline": "Premium & Ultra-Portable",
+        "hero_desc": "Dell's flagship craftsmanship. InfinityEdge displays, premium materials, and cutting-edge performance in a beautifully thin and light design.",
+        "features": [
+            {
+                "title": "Stunning InfinityEdge display",
+                "desc": "Edge-to-edge OLED and 3.5K displays with 100% DCI-P3 color accuracy. HDR 500 certified for breathtaking visuals whether you're creating or consuming content.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Crafted with precision",
+                "desc": "CNC-machined aluminum and carbon fiber construction. Weighing just 1.17kg, the XPS 13 is ultraportable without compromising on durability or premium feel.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Intel Core Ultra performance",
+                "desc": "Latest Intel Core Ultra processors with integrated NPU for AI-accelerated workflows. Up to 32GB LPDDR5x memory for seamless multitasking and creative work.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "alienware": {
+        "name": "Alienware",
+        "tagline": "Gaming Powerhouse",
+        "hero_desc": "Dominate every game with legendary Alienware engineering. Top-tier GPUs, advanced Cryo-Tech cooling, and high-refresh displays built for competitive gaming.",
+        "features": [
+            {
+                "title": "Unmatched gaming power",
+                "desc": "Up to NVIDIA RTX 4090 graphics and Intel Core i9 HX processors. Ray tracing, DLSS 3, and 240Hz displays deliver the ultimate competitive advantage.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Cryo-Tech cooling",
+                "desc": "Alienware's patented vapor chamber cooling with Element 31 thermal interface material keeps temperatures low during marathon gaming sessions. Zero throttling, maximum FPS.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Iconic design & AlienFX",
+                "desc": "Legend 3.0 industrial design with per-key RGB AlienFX lighting. Stadium-inspired rear thermal shelf and customizable lighting zones let you express your style.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+}
+
+
+@app.route("/laptops/<series_name>")
+def series_page(series_name):
+    """Individual series landing page with scroll-reveal features."""
+    series_name = series_name.lower()
+    if series_name not in SERIES_INFO:
+        flash("Series not found!", "error")
+        return redirect(url_for("laptops_page"))
+
+    series = SERIES_INFO[series_name]
+
+    # Get products for this series to show count
+    product_count = Product.query.filter_by(
+        category="laptop", dell_series=series["name"], in_stock=True
+    ).count()
+
+    return render_template(
+        "series_detail.html",
+        series=series,
+        series_key=series_name,
+        product_count=product_count,
+    )
 
 
 @app.route("/products")

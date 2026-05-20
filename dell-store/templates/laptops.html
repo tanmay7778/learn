@@ -17,10 +17,10 @@
     <div class="row g-4 justify-content-center">
         <!-- INSPIRON -->
         <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('products', category='laptop', series='Inspiron') }}" class="series-card">
+            <a href="{{ url_for('series_page', series_name='inspiron') }}" class="series-card">
                 <div class="series-card-inner">
                     <div class="series-img-wrapper">
-                        <img src="{{ url_for('static', filename='images/series/inspiron.png') }}" alt="Dell Inspiron">
+                        <img src="{{ url_for('static', filename='images/series/inspiron/hero.png') }}" alt="Dell Inspiron">
                     </div>
                     <h3>Inspiron</h3>
                     <p class="series-tagline">Everyday Performance</p>
@@ -33,10 +33,10 @@
 
         <!-- VOSTRO -->
         <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('products', category='laptop', series='Vostro') }}" class="series-card">
+            <a href="{{ url_for('series_page', series_name='vostro') }}" class="series-card">
                 <div class="series-card-inner">
                     <div class="series-img-wrapper">
-                        <img src="{{ url_for('static', filename='images/series/vostro.png') }}" alt="Dell Vostro">
+                        <img src="{{ url_for('static', filename='images/series/vostro/hero.png') }}" alt="Dell Vostro">
                     </div>
                     <h3>Vostro</h3>
                     <p class="series-tagline">Business Essential</p>
@@ -49,10 +49,10 @@
 
         <!-- XPS -->
         <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('products', category='laptop', series='XPS') }}" class="series-card">
+            <a href="{{ url_for('series_page', series_name='xps') }}" class="series-card">
                 <div class="series-card-inner">
                     <div class="series-img-wrapper">
-                        <img src="{{ url_for('static', filename='images/series/xps.png') }}" alt="Dell XPS">
+                        <img src="{{ url_for('static', filename='images/series/xps/hero.png') }}" alt="Dell XPS">
                     </div>
                     <h3>XPS</h3>
                     <p class="series-tagline">Premium & Ultra-Portable</p>
@@ -65,10 +65,10 @@
 
         <!-- ALIENWARE -->
         <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('products', category='laptop', series='Alienware') }}" class="series-card">
+            <a href="{{ url_for('series_page', series_name='alienware') }}" class="series-card">
                 <div class="series-card-inner">
                     <div class="series-img-wrapper alienware-bg">
-                        <img src="{{ url_for('static', filename='images/series/alienware.png') }}" alt="Dell Alienware">
+                        <img src="{{ url_for('static', filename='images/series/alienware/hero.png') }}" alt="Dell Alienware">
                     </div>
                     <h3>Alienware</h3>
                     <p class="series-tagline">Gaming Powerhouse</p>
@@ -79,412 +79,33 @@
             </a>
         </div>
     </div>
-</div>
 
-<!-- Scroll indicator -->
-<div class="text-center py-4">
-    <div class="scroll-indicator">
-        <div class="mouse-icon">
-            <div class="mouse-wheel"></div>
-        </div>
-        <i class="fas fa-chevron-down mt-2" style="color: var(--dell-gray-500); font-size: 0.9rem; animation: bounceDown 2s infinite;"></i>
+    <!-- View All Laptops link -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('products', category='laptop') }}" class="btn btn-outline-primary btn-lg" style="border-radius: 50px; padding: 12px 36px;">
+            <i class="fas fa-th-large me-2"></i> View All Laptops
+        </a>
     </div>
-</div>
-
-<!-- ======= SCROLL-REVEAL FEATURE SECTIONS ======= -->
-
-<!-- Feature 1: Designed for Productivity -->
-<section class="feature-section" style="background: var(--dell-gray-100);">
-    <div class="container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-5">
-                <div class="feature-content reveal-left">
-                    <div class="feature-accent-bar"></div>
-                    <h2 class="feature-title">Designed for productivity</h2>
-                    <p class="feature-text">
-                        Maximize productivity with state-of-the-art processors, anti-glare displays and multiple ports for easy connection. 
-                        Plus, connect with confidence with webcams equipped with Temporal Noise Reduction to reduce pixelation and eliminate visual noise.
-                    </p>
-                    <div class="feature-links">
-                        <a href="{{ url_for('products', category='laptop') }}">Shop Laptops</a>
-                        <span class="mx-2">|</span>
-                        <a href="{{ url_for('products', category='laptop', series='Vostro') }}">View Vostro Models</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-7">
-                <div class="feature-image reveal-right">
-                    <img src="{{ url_for('static', filename='images/series/feature_productivity.png') }}" alt="Dell laptop productivity">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Feature 2: Built to Last -->
-<section class="feature-section" style="background: var(--dell-white);">
-    <div class="container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-7 order-lg-1 order-2">
-                <div class="feature-image reveal-left">
-                    <img src="{{ url_for('static', filename='images/series/feature_durability.png') }}" alt="Dell laptop durability">
-                </div>
-            </div>
-            <div class="col-lg-5 order-lg-2 order-1">
-                <div class="feature-content reveal-right">
-                    <div class="feature-accent-bar"></div>
-                    <h2 class="feature-title">Built to last</h2>
-                    <p class="feature-text">
-                        Dell laptops undergo rigorous testing — from extreme temperatures to drop tests — ensuring they withstand everyday wear. 
-                        MIL-STD 810H tested for reliability you can count on, backed by Dell's standard 1-year warranty.
-                    </p>
-                    <div class="feature-links">
-                        <a href="{{ url_for('products', category='laptop', series='Inspiron') }}">Shop Inspiron</a>
-                        <span class="mx-2">|</span>
-                        <a href="{{ url_for('products', category='laptop', series='XPS') }}">Shop XPS</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Feature 3: Performance That Scales -->
-<section class="feature-section" style="background: var(--dell-gray-100);">
-    <div class="container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-5">
-                <div class="feature-content reveal-left">
-                    <div class="feature-accent-bar"></div>
-                    <h2 class="feature-title">Performance that scales</h2>
-                    <p class="feature-text">
-                        From Intel Core Ultra processors to dedicated NVIDIA graphics, choose the power you need. 
-                        Whether it's lightweight browsing or demanding creative workloads — there's a Dell laptop engineered for your workflow.
-                    </p>
-                    <div class="feature-links">
-                        <a href="{{ url_for('products', category='laptop', series='Alienware') }}">Shop Alienware</a>
-                        <span class="mx-2">|</span>
-                        <a href="{{ url_for('products', category='laptop') }}">Compare All</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-7">
-                <div class="feature-image reveal-right">
-                    <img src="{{ url_for('static', filename='images/series/feature_performance.png') }}" alt="Dell laptop performance">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- View All Laptops CTA -->
-<div class="text-center py-5" style="background: var(--dell-white);">
-    <a href="{{ url_for('products', category='laptop') }}" class="btn btn-primary btn-lg" style="border-radius: 50px; padding: 14px 40px; font-size: 1rem;">
-        <i class="fas fa-th-large me-2"></i> View All Laptops
-    </a>
 </div>
 
 <style>
-/* ====== SERIES CARDS ====== */
-.series-card {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-    height: 100%;
-}
-
-.series-card-inner {
-    background: var(--dell-white);
-    border: 1px solid var(--dell-gray-300);
-    border-radius: var(--radius-lg);
-    padding: 0 0 28px 0;
-    text-align: center;
-    height: 100%;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.series-card-inner::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--dell-blue);
-    transform: scaleX(0);
-    transition: transform 0.4s ease;
-}
-
-.series-card:hover .series-card-inner {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
-    border-color: var(--dell-blue);
-}
-
-.series-card:hover .series-card-inner::before {
-    transform: scaleX(1);
-}
-
-.series-img-wrapper {
-    width: 100%;
-    height: 180px;
-    background: var(--dell-gray-100);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    margin-bottom: 20px;
-    overflow: hidden;
-    transition: all 0.4s ease;
-}
-
-.series-img-wrapper.alienware-bg {
-    background: linear-gradient(135deg, #1A1A2E 0%, #2D1B4E 100%);
-}
-
-.series-img-wrapper img {
-    max-height: 140px;
-    max-width: 100%;
-    object-fit: contain;
-    transition: transform 0.5s ease;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.1));
-}
-
-.series-card:hover .series-img-wrapper img {
-    transform: scale(1.08);
-}
-
-.series-card:hover .series-img-wrapper {
-    background: var(--dell-blue-light);
-}
-
-.series-card:hover .series-img-wrapper.alienware-bg {
-    background: linear-gradient(135deg, #1A1A2E 0%, #4A2080 100%);
-}
-
-.series-card-inner h3 {
-    font-weight: 800;
-    font-size: 1.4rem;
-    margin-bottom: 4px;
-    color: var(--dell-gray-900);
-    padding: 0 20px;
-}
-
-.series-tagline {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--dell-blue);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 14px;
-    padding: 0 20px;
-}
-
-.series-desc {
-    font-size: 0.86rem;
-    color: var(--dell-gray-500);
-    line-height: 1.6;
-    margin-bottom: 16px;
-    flex-grow: 1;
-    padding: 0 20px;
-}
-
-.series-price {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--dell-gray-700);
-    margin-bottom: 16px;
-    padding: 6px 14px;
-    background: var(--dell-gray-100);
-    border-radius: 50px;
-}
-
-.series-cta {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--dell-blue);
-    transition: all 0.3s ease;
-}
-
-.series-card:hover .series-cta {
-    color: var(--dell-blue-dark);
-    letter-spacing: 0.3px;
-}
-
-/* ====== SCROLL INDICATOR ====== */
-.scroll-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.mouse-icon {
-    width: 26px;
-    height: 40px;
-    border: 2px solid var(--dell-gray-500);
-    border-radius: 14px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-}
-
-.mouse-wheel {
-    width: 4px;
-    height: 10px;
-    background: var(--dell-gray-500);
-    border-radius: 2px;
-    margin-top: 8px;
-    animation: scrollWheel 2s infinite;
-}
-
-@keyframes scrollWheel {
-    0% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(12px); }
-}
-
-@keyframes bounceDown {
-    0%, 100% { transform: translateY(0); opacity: 0.5; }
-    50% { transform: translateY(6px); opacity: 1; }
-}
-
-/* ====== FEATURE SECTIONS (Scroll-Reveal) ====== */
-.feature-section {
-    padding: 100px 0;
-    overflow: hidden;
-}
-
-.feature-content {
-    padding: 20px 0;
-}
-
-.feature-accent-bar {
-    width: 4px;
-    height: 60px;
-    background: var(--dell-black);
-    margin-bottom: 24px;
-}
-
-.feature-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--dell-gray-900);
-    margin-bottom: 16px;
-    letter-spacing: -0.5px;
-}
-
-.feature-text {
-    font-size: 1rem;
-    color: var(--dell-gray-500);
-    line-height: 1.8;
-    margin-bottom: 24px;
-    max-width: 450px;
-}
-
-.feature-links a {
-    color: var(--dell-blue);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.92rem;
-    transition: all 0.3s ease;
-}
-
-.feature-links a:hover {
-    color: var(--dell-blue-dark);
-    text-decoration: underline;
-}
-
-.feature-links span {
-    color: var(--dell-gray-300);
-}
-
-.feature-image {
-    text-align: center;
-}
-
-.feature-image img {
-    max-width: 100%;
-    max-height: 420px;
-    object-fit: contain;
-    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.1));
-}
-
-/* ====== SCROLL REVEAL ANIMATIONS ====== */
-.reveal-left, .reveal-right {
-    opacity: 0;
-    transition: all 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.reveal-left {
-    transform: translateX(-60px);
-}
-
-.reveal-right {
-    transform: translateX(60px);
-}
-
-.reveal-left.revealed, .reveal-right.revealed {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-/* Stagger delay for image vs text */
-.feature-image.revealed {
-    transition-delay: 0.15s;
-}
-
-@media (max-width: 992px) {
-    .feature-section {
-        padding: 60px 0;
-    }
-    .feature-title {
-        font-size: 1.6rem;
-    }
-    .feature-image img {
-        max-height: 280px;
-    }
-}
-
-@media (max-width: 768px) {
-    .series-img-wrapper {
-        height: 140px;
-        padding: 15px;
-    }
-    .series-img-wrapper img {
-        max-height: 110px;
-    }
-    .feature-section {
-        padding: 40px 0;
-    }
-    .feature-accent-bar {
-        height: 40px;
-    }
-}
+.series-card { display: block; text-decoration: none; color: inherit; height: 100%; }
+.series-card-inner { background: var(--dell-white); border: 1px solid var(--dell-gray-300); border-radius: var(--radius-lg); padding: 0 0 28px 0; text-align: center; height: 100%; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+.series-card-inner::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--dell-blue); transform: scaleX(0); transition: transform 0.4s ease; }
+.series-card:hover .series-card-inner { transform: translateY(-10px); box-shadow: 0 20px 50px rgba(0,0,0,0.12); border-color: var(--dell-blue); }
+.series-card:hover .series-card-inner::before { transform: scaleX(1); }
+.series-img-wrapper { width: 100%; height: 180px; background: var(--dell-gray-100); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; justify-content: center; padding: 20px; margin-bottom: 20px; overflow: hidden; transition: all 0.4s ease; }
+.series-img-wrapper.alienware-bg { background: linear-gradient(135deg, #1A1A2E 0%, #2D1B4E 100%); }
+.series-img-wrapper img { max-height: 140px; max-width: 100%; object-fit: contain; transition: transform 0.5s ease; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1)); }
+.series-card:hover .series-img-wrapper img { transform: scale(1.08); }
+.series-card:hover .series-img-wrapper { background: var(--dell-blue-light); }
+.series-card:hover .series-img-wrapper.alienware-bg { background: linear-gradient(135deg, #1A1A2E 0%, #4A2080 100%); }
+.series-card-inner h3 { font-weight: 800; font-size: 1.4rem; margin-bottom: 4px; color: var(--dell-gray-900); padding: 0 20px; }
+.series-tagline { font-size: 0.82rem; font-weight: 600; color: var(--dell-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; padding: 0 20px; }
+.series-desc { font-size: 0.86rem; color: var(--dell-gray-500); line-height: 1.6; margin-bottom: 16px; flex-grow: 1; padding: 0 20px; }
+.series-price { font-size: 0.85rem; font-weight: 700; color: var(--dell-gray-700); margin-bottom: 16px; padding: 6px 14px; background: var(--dell-gray-100); border-radius: 50px; }
+.series-cta { font-size: 0.88rem; font-weight: 600; color: var(--dell-blue); transition: all 0.3s ease; }
+.series-card:hover .series-cta { color: var(--dell-blue-dark); }
+@media (max-width: 768px) { .series-img-wrapper { height: 140px; padding: 15px; } .series-img-wrapper img { max-height: 110px; } }
 </style>
-
-<!-- Scroll Reveal Script (Intersection Observer) -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const revealElements = document.querySelectorAll('.reveal-left, .reveal-right');
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('revealed');
-                observer.unobserve(entry.target); // Only animate once
-            }
-        });
-    }, {
-        threshold: 0.15,
-        rootMargin: '0px 0px -50px 0px'
-    });
-
-    revealElements.forEach(el => observer.observe(el));
-});
-</script>
 {% endblock %}
