@@ -27,6 +27,8 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 
 # Create folders
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+SERIES_FOLDER = os.path.join(app.static_folder, "images", "series")
+os.makedirs(SERIES_FOLDER, exist_ok=True)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
