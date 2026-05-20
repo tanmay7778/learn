@@ -61,11 +61,14 @@ def products():
     category = request.args.get("category", "all")
     sort_by = request.args.get("sort", "name")
     search = request.args.get("search", "")
+    series = request.args.get("series", "")
 
     query = Product.query.filter_by(in_stock=True)
 
     if category != "all":
         query = query.filter_by(category=category)
+    if series:
+        query = query.filter_by(dell_series=series)
     if search:
         query = query.filter(Product.name.ilike(f"%{search}%"))
     if sort_by == "price_low":

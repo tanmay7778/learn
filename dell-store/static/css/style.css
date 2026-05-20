@@ -418,7 +418,8 @@ body {
 }
 
 .product-card .card-img-wrapper img {
-    height: 180px;
+    width: 100%;
+    height: 200px;
     object-fit: contain;
     transition: transform 0.5s ease;
 }
@@ -809,4 +810,104 @@ main {
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== IMAGE LIGHTBOX ====== */
+
+.image-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    animation: fadeIn 0.2s ease;
+}
+
+.image-lightbox.active {
+    display: flex;
+}
+
+.image-lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: zoomIn 0.3s ease;
+}
+
+.image-lightbox .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    transition: var(--transition);
+}
+
+.image-lightbox .lightbox-close:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Clickable image cursor on product detail */
+.product-detail-img img {
+    cursor: zoom-in;
+}
+
+/* ====== SERIES FILTER PILLS (Laptop subcategories) ====== */
+
+.series-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.series-filters .series-pill {
+    padding: 6px 16px;
+    border-radius: 50px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1.5px solid var(--dell-gray-300);
+    color: var(--dell-gray-700);
+    background: var(--dell-white);
+    transition: var(--transition);
+}
+
+.series-filters .series-pill:hover {
+    border-color: var(--dell-blue);
+    color: var(--dell-blue);
+    background: var(--dell-blue-light);
+}
+
+.series-filters .series-pill.active {
+    background: var(--dell-blue);
+    color: var(--dell-white);
+    border-color: var(--dell-blue);
 }

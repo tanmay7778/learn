@@ -34,15 +34,15 @@
 
                     <h6 style="font-weight: 600; font-size: 0.85rem; color: var(--dell-gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Sort By</h6>
                     <div class="d-flex flex-column gap-1">
-                        <a href="{{ url_for('products', category=category, sort='price_low') }}"
+                        <a href="{{ url_for('products', category=category, sort='price_low', series=request.args.get('series', '')) }}"
                            class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
                             <i class="fas fa-sort-amount-down-alt me-2"></i> Price: Low → High
                         </a>
-                        <a href="{{ url_for('products', category=category, sort='price_high') }}"
+                        <a href="{{ url_for('products', category=category, sort='price_high', series=request.args.get('series', '')) }}"
                            class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
                             <i class="fas fa-sort-amount-up me-2"></i> Price: High → Low
                         </a>
-                        <a href="{{ url_for('products', category=category, sort='name') }}"
+                        <a href="{{ url_for('products', category=category, sort='name', series=request.args.get('series', '')) }}"
                            class="btn btn-sm btn-outline-secondary text-start" style="border-radius: 8px;">
                             <i class="fas fa-sort-alpha-down me-2"></i> Name: A → Z
                         </a>
@@ -67,10 +67,38 @@
                 </div>
             </form>
 
+            <!-- Series Filter Pills (shown for laptops) -->
+            {% if category == 'laptop' %}
+            <div class="series-filters">
+                <a href="{{ url_for('products', category='laptop') }}"
+                   class="series-pill {{ 'active' if not request.args.get('series') }}">All Laptops</a>
+                <a href="{{ url_for('products', category='laptop', series='Inspiron') }}"
+                   class="series-pill {{ 'active' if request.args.get('series') == 'Inspiron' }}">
+                    <i class="fas fa-laptop me-1"></i> Inspiron
+                </a>
+                <a href="{{ url_for('products', category='laptop', series='Vostro') }}"
+                   class="series-pill {{ 'active' if request.args.get('series') == 'Vostro' }}">
+                    <i class="fas fa-briefcase me-1"></i> Vostro
+                </a>
+                <a href="{{ url_for('products', category='laptop', series='XPS') }}"
+                   class="series-pill {{ 'active' if request.args.get('series') == 'XPS' }}">
+                    <i class="fas fa-gem me-1"></i> XPS
+                </a>
+                <a href="{{ url_for('products', category='laptop', series='Alienware') }}"
+                   class="series-pill {{ 'active' if request.args.get('series') == 'Alienware' }}">
+                    <i class="fas fa-gamepad me-1"></i> Alienware
+                </a>
+            </div>
+            {% endif %}
+
             <!-- Results header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 style="font-weight: 700; font-size: 1.3rem; margin: 0;">
-                    {{ category.replace('-', ' ').title() if category != 'all' else 'All' }} Products
+                    {% if request.args.get('series') %}
+                        {{ request.args.get('series') }} Laptops
+                    {% else %}
+                        {{ category.replace('-', ' ').title() if category != 'all' else 'All' }} Products
+                    {% endif %}
                 </h4>
                 <span class="badge bg-primary" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 50px;">
                     {{ products|length }} results

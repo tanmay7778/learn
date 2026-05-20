@@ -23,7 +23,8 @@
                     {% for img_url in product_images %}
                     <div class="carousel-item {% if loop.first %}active{% endif %}">
                         <div class="product-detail-img">
-                            <img src="{{ img_url }}" class="img-fluid" alt="{{ product.name }} - Image {{ loop.index }}">
+                            <img src="{{ img_url }}" class="img-fluid clickable-img" alt="{{ product.name }} - Image {{ loop.index }}"
+                                 onclick="openLightbox('{{ img_url }}')">
                         </div>
                     </div>
                     {% endfor %}
@@ -58,10 +59,11 @@
             </div>
 
             {% else %}
-            <!-- Single image (fallback) -->
+            <!-- Single image (clickable for lightbox) -->
             <div class="product-detail-img">
-                <img src="{{ product_images[0] if product_images else 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' }}"
-                     class="img-fluid" alt="{{ product.name }}">
+                {% set img_src = product_images[0] if product_images else 'https://i.dell.com/is/image/DellContent/content/dam/ss2/page-specific/category-pages/xps-702x702.png' %}
+                <img src="{{ img_src }}" class="img-fluid clickable-img" alt="{{ product.name }}"
+                     onclick="openLightbox('{{ img_src }}')">
             </div>
             {% endif %}
 
@@ -186,7 +188,37 @@
     </div>
 </div>
 
-<!-- Carousel thumbnail sync script -->
+<!-- LIGHTBOX OVERLAY (full-screen image view) -->
+<div class="image-lightbox" id="imageLightbox" onclick="closeLightbox()">
+    <div class="lightbox-close" onclick="closeLightbox()">
+        <i class="fas fa-times"></i>
+    </div>
+    <img id="lightboxImg" src="" alt="Full size image">
+</div>
+
+<!-- Lightbox + Carousel Scripts -->
+<script>
+// Lightbox functions
+function openLightbox(imgSrc) {
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    lightboxImg.src = imgSrc;
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+});
+</script>
+
 {% if product_images and product_images|length > 1 %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
