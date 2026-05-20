@@ -433,11 +433,9 @@ def delete_product(product_id):
 @app.route("/admin/orders")
 @login_required
 def admin_orders():
-    """Admin: View all customer orders."""
     if not current_user.is_admin:
         flash("Access denied!", "error")
         return redirect(url_for("index"))
-
     orders = Order.query.order_by(Order.created_at.desc()).all()
     return render_template("admin_orders.html", orders=orders)
 
@@ -445,10 +443,8 @@ def admin_orders():
 @app.route("/admin/orders/<int:order_id>/status", methods=["POST"])
 @login_required
 def update_order_status(order_id):
-    """Admin: Update order status."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
-
     order = Order.query.get_or_404(order_id)
     order.status = request.form["status"]
     db.session.commit()
@@ -464,11 +460,9 @@ def update_order_status(order_id):
 @app.route("/admin/service-requests")
 @login_required
 def admin_service_requests():
-    """Admin: View all service requests."""
     if not current_user.is_admin:
         flash("Access denied!", "error")
         return redirect(url_for("index"))
-
     requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
     service_requests = []
     if os.path.exists(requests_path):
@@ -477,8 +471,6 @@ def admin_service_requests():
                 service_requests = json.load(f)
         except (json.JSONDecodeError, IOError):
             service_requests = []
-
-    # Reverse so newest first
     service_requests.reverse()
     return render_template("admin_service_requests.html", requests=service_requests)
 
@@ -486,36 +478,30 @@ def admin_service_requests():
 @app.route("/admin/service-requests/<request_id>/status", methods=["POST"])
 @login_required
 def update_service_status(request_id):
-    """Admin: Update service request status."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
-
     requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
     new_status = request.form["status"]
-
     if os.path.exists(requests_path):
         with open(requests_path, "r") as f:
             all_requests = json.load(f)
-
         for req in all_requests:
             if req["request_id"] == request_id:
                 req["status"] = new_status
                 break
-
         with open(requests_path, "w") as f:
             json.dump(all_requests, f, indent=2)
-
     flash(f"Service request {request_id} updated to '{new_status}'.", "success")
     return redirect(url_for("admin_service_requests"))
 
 
 # ==========================================
-# SERVICE CHATBOT ROUTES (Gemini AI + Parts DB)
+# SERVICE CHATBOT — LLM INTEGRATION
 # ==========================================
 
 PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
 
-# System prompt for domain-locked Dell service assistant
+# Domain-locked system prompt
 SERVICE_SYSTEM_PROMPT = """You are a Dell Laptop Service Assistant for an authorized Dell service center.
 
 YOUR ROLE:
@@ -625,7 +611,6 @@ def get_parts_context():
     df = load_parts_data()
     if df.empty:
         return "No parts data available."
-
     lines = []
     current_model = ""
     for _, row in df.iterrows():
@@ -633,41 +618,111 @@ def get_parts_context():
             current_model = row["model"]
             lines.append(f"\n{current_model}:")
         lines.append(f"  - {row['part']} (Code: {row['part_code']}): Part ₹{int(row['price'])} + Labour ₹{int(row['labour_charge'])} = Total ₹{int(row['price'] + row['labour_charge'])}")
-
     return "\n".join(lines)
 
 
+# ==========================================
+# LLM PROVIDER: DATABRICKS FOUNDATION MODELS
+# ==========================================
+
+
+def call_databricks_api(messages, parts_context):
+    """
+    Call Databricks Foundation Model API (OpenAI-compatible format).
+    Works on corporate network — calls your own Databricks workspace.
+    Free pay-per-token models: databricks-meta-llama-3-3-70b-instruct
+    """
+    host = app.config.get("DATABRICKS_HOST", "")
+    token = app.config.get("DATABRICKS_TOKEN", "")
+    model = app.config.get("DATABRICKS_MODEL", "databricks-meta-llama-3-3-70b-instruct")
+
+    if not host or not token or token == "YOUR_DATABRICKS_TOKEN_HERE":
+        return None, "Databricks not configured. Set DATABRICKS_HOST and DATABRICKS_TOKEN in config.py"
+
+    # Build system prompt with parts data
+    system_prompt = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
+
+    # Format messages in OpenAI chat format
+    api_messages = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = msg["role"] if msg["role"] in ("user", "assistant") else "assistant"
+        api_messages.append({"role": role, "content": msg["content"]})
+
+    # Databricks serving endpoint URL (OpenAI-compatible)
+    url = f"{host.rstrip('/')}/serving-endpoints/{model}/invocations"
+
+    payload = {
+        "messages": api_messages,
+        "max_tokens": 1024,
+        "temperature": 0.7,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = http_requests.post(url, json=payload, headers=headers, timeout=60, verify=False)
+        response_text = response.text.strip()
+
+        if not response_text:
+            return None, f"Empty response from Databricks (HTTP {response.status_code})"
+
+        # Check for HTML (proxy intercept)
+        if response_text.startswith("<!") or response_text.startswith("<html"):
+            return None, f"Proxy blocked Databricks API. Preview: {response_text[:100]}"
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            return None, f"Invalid JSON from Databricks (HTTP {response.status_code}): {response_text[:150]}"
+
+        if response.status_code == 200:
+            # OpenAI-compatible response format
+            choices = data.get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", ""), None
+            return None, "Empty response from Databricks (no choices)"
+        else:
+            error_msg = data.get("error", {}).get("message", "") or data.get("message", "") or response_text[:200]
+            return None, f"Databricks API error ({response.status_code}): {error_msg}"
+
+    except http_requests.exceptions.Timeout:
+        return None, "Databricks request timed out (60s). Try again."
+    except http_requests.exceptions.ConnectionError as e:
+        return None, f"Cannot reach Databricks workspace. Check DATABRICKS_HOST in config.py. ({str(e)[:80]})"
+    except Exception as e:
+        return None, f"Databricks connection error: {str(e)}"
+
+
+# ==========================================
+# LLM PROVIDER: GOOGLE GEMINI (backup)
+# ==========================================
+
+
 def call_gemini_api(messages, parts_context):
-    """Call Google Gemini API with conversation history."""
+    """
+    Call Google Gemini API (free tier).
+    Blocked on Capgemini corporate network — use as backup on personal WiFi.
+    """
     api_key = app.config.get("GEMINI_API_KEY", "")
     if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
-        return None, "Gemini API key not configured. Please add your key in config.py"
+        return None, "Gemini API key not configured."
 
-    # Build the system instruction with parts data
     system_instruction = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
 
-    # Format conversation for Gemini API
     contents = []
     for msg in messages:
         role = "user" if msg["role"] == "user" else "model"
-        contents.append({
-            "role": role,
-            "parts": [{"text": msg["content"]}]
-        })
+        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
-    # Gemini API endpoint (v1beta for free tier)
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
     payload = {
         "contents": contents,
-        "systemInstruction": {
-            "parts": [{"text": system_instruction}]
-        },
-        "generationConfig": {
-            "temperature": 0.7,
-            "topP": 0.9,
-            "maxOutputTokens": 1024,
-        },
+        "systemInstruction": {"parts": [{"text": system_instruction}]},
+        "generationConfig": {"temperature": 0.7, "topP": 0.9, "maxOutputTokens": 1024},
         "safetySettings": [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -677,58 +732,71 @@ def call_gemini_api(messages, parts_context):
     }
 
     try:
-        # verify=False needed for corporate proxy (Capgemini SSL interception)
         response = http_requests.post(url, json=payload, timeout=30, verify=False)
-
-        # Debug: Check if proxy is intercepting (returns HTML instead of JSON)
         content_type = response.headers.get("Content-Type", "")
         response_text = response.text.strip()
 
-        # If response is empty
         if not response_text:
-            return None, f"Empty response (HTTP {response.status_code}). Your corporate proxy may be blocking generativelanguage.googleapis.com"
+            return None, "Empty response from Gemini"
+        if "text/html" in content_type or response_text.startswith("<!"):
+            return None, "Gemini blocked by proxy (HTML returned)"
 
-        # If response is HTML (proxy block page)
-        if "text/html" in content_type or response_text.startswith("<!") or response_text.startswith("<html"):
-            preview = response_text[:150].replace("\n", " ")
-            return None, f"Proxy returned HTML instead of JSON (HTTP {response.status_code}). The domain generativelanguage.googleapis.com may be blocked. Preview: {preview}"
-
-        # Try to parse JSON
         try:
             data = response.json()
         except json.JSONDecodeError:
-            return None, f"Invalid JSON response (HTTP {response.status_code}). First 150 chars: {response_text[:150]}"
+            return None, f"Invalid JSON from Gemini: {response_text[:100]}"
 
         if response.status_code == 200:
-            # Extract text from Gemini response
             candidates = data.get("candidates", [])
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
                 if parts:
                     return parts[0].get("text", ""), None
-            return None, "Empty response from Gemini (no candidates)"
+            return None, "Empty Gemini response (no candidates)"
         else:
-            error_detail = data.get("error", {}).get("message", response_text[:200])
-            return None, f"Gemini API error ({response.status_code}): {error_detail}"
+            error_detail = data.get("error", {}).get("message", response_text[:150])
+            return None, f"Gemini error ({response.status_code}): {error_detail}"
 
     except http_requests.exceptions.Timeout:
-        return None, "Request timed out. Please try again."
-    except http_requests.exceptions.ConnectionError as e:
-        return None, f"Cannot reach generativelanguage.googleapis.com — likely blocked by corporate firewall. Try from personal WiFi/hotspot. ({str(e)[:100]})"
+        return None, "Gemini request timed out."
     except Exception as e:
-        return None, f"Connection error: {str(e)}"
+        return None, f"Gemini connection error: {str(e)}"
+
+
+# ==========================================
+# LLM ROUTER — picks provider based on config
+# ==========================================
+
+
+def call_llm(messages, parts_context):
+    """
+    Route to the configured LLM provider.
+    Set LLM_PROVIDER in config.py: "databricks" or "gemini"
+    """
+    provider = app.config.get("LLM_PROVIDER", "databricks").lower()
+
+    if provider == "databricks":
+        return call_databricks_api(messages, parts_context)
+    elif provider == "gemini":
+        return call_gemini_api(messages, parts_context)
+    else:
+        return None, f"Unknown LLM_PROVIDER: '{provider}'. Use 'databricks' or 'gemini'."
+
+
+# ==========================================
+# SERVICE CHATBOT ROUTES
+# ==========================================
 
 
 @app.route("/service")
 def service_page():
-    # Clear chat history on fresh page load
     session.pop("chat_history", None)
     return render_template("service.html")
 
 
 @app.route("/service/chat", methods=["POST"])
 def service_chat():
-    """Handle chat messages — calls Gemini API with domain-locked prompt."""
+    """Handle chat messages — routes to configured LLM provider."""
     data = request.get_json()
     if not data or not data.get("message"):
         return jsonify({"error": "No message provided"}), 400
@@ -737,20 +805,15 @@ def service_chat():
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
 
-    # Get or create chat history in session
     chat_history = session.get("chat_history", [])
-
-    # Add user message to history
     chat_history.append({"role": "user", "content": user_message})
 
-    # Get parts context for the LLM
     parts_context = get_parts_context()
 
-    # Call Gemini
-    reply, error = call_gemini_api(chat_history, parts_context)
+    # Call configured LLM
+    reply, error = call_llm(chat_history, parts_context)
 
     if error:
-        # Fallback: if API fails, provide helpful message
         reply = (
             "I'm having trouble connecting to my AI service right now. "
             "But I can still help! Here are our supported models:\n\n"
@@ -762,33 +825,28 @@ def service_chat():
             f"_(Technical note: {error})_"
         )
 
-    # Add assistant reply to history
     chat_history.append({"role": "assistant", "content": reply})
 
-    # Keep only last 20 messages to avoid session bloat
     if len(chat_history) > 20:
         chat_history = chat_history[-20:]
 
     session["chat_history"] = chat_history
-
     return jsonify({"reply": reply})
 
 
 @app.route("/service/chat/reset", methods=["POST"])
 def service_chat_reset():
-    """Reset chat history."""
     session.pop("chat_history", None)
     return jsonify({"success": True})
 
 
-# Legacy routes (keep for backward compatibility)
+# Legacy routes (backward compatibility)
 @app.route("/service/parts")
 def service_parts():
     model = request.args.get("model", "")
     df = load_parts_data()
     if df.empty or not model:
         return jsonify({"parts": []})
-
     model_parts = df[df["model"] == model]
     parts = [
         {"part": row["part"], "part_code": row["part_code"],
