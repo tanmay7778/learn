@@ -2,6 +2,7 @@ import os
 import io
 import json
 import random
+import urllib3
 from datetime import datetime
 import pandas as pd
 import requests as http_requests  # renamed to avoid conflict with flask.request
@@ -11,6 +12,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, Product, User, Order, OrderItem, Review
 from config import Config
+
+# Suppress SSL warnings (corporate proxy intercepts HTTPS)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -673,7 +677,8 @@ def call_gemini_api(messages, parts_context):
     }
 
     try:
-        response = http_requests.post(url, json=payload, timeout=30)
+        # verify=False needed for corporate proxy (Capgemini SSL interception)
+        response = http_requests.post(url, json=payload, timeout=30, verify=False)
         if response.status_code == 200:
             data = response.json()
             # Extract text from Gemini response
