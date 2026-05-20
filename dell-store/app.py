@@ -679,20 +679,42 @@ def call_gemini_api(messages, parts_context):
     try:
         # verify=False needed for corporate proxy (Capgemini SSL interception)
         response = http_requests.post(url, json=payload, timeout=30, verify=False)
-        if response.status_code == 200:
+
+        # Debug: Check if proxy is intercepting (returns HTML instead of JSON)
+        content_type = response.headers.get("Content-Type", "")
+        response_text = response.text.strip()
+
+        # If response is empty
+        if not response_text:
+            return None, f"Empty response (HTTP {response.status_code}). Your corporate proxy may be blocking generativelanguage.googleapis.com"
+
+        # If response is HTML (proxy block page)
+        if "text/html" in content_type or response_text.startswith("<!") or response_text.startswith("<html"):
+            preview = response_text[:150].replace("\n", " ")
+            return None, f"Proxy returned HTML instead of JSON (HTTP {response.status_code}). The domain generativelanguage.googleapis.com may be blocked. Preview: {preview}"
+
+        # Try to parse JSON
+        try:
             data = response.json()
+        except json.JSONDecodeError:
+            return None, f"Invalid JSON response (HTTP {response.status_code}). First 150 chars: {response_text[:150]}"
+
+        if response.status_code == 200:
             # Extract text from Gemini response
             candidates = data.get("candidates", [])
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
                 if parts:
                     return parts[0].get("text", ""), None
-            return None, "Empty response from Gemini"
+            return None, "Empty response from Gemini (no candidates)"
         else:
-            error_detail = response.json().get("error", {}).get("message", response.text[:200])
+            error_detail = data.get("error", {}).get("message", response_text[:200])
             return None, f"Gemini API error ({response.status_code}): {error_detail}"
+
     except http_requests.exceptions.Timeout:
         return None, "Request timed out. Please try again."
+    except http_requests.exceptions.ConnectionError as e:
+        return None, f"Cannot reach generativelanguage.googleapis.com — likely blocked by corporate firewall. Try from personal WiFi/hotspot. ({str(e)[:100]})"
     except Exception as e:
         return None, f"Connection error: {str(e)}"
 
