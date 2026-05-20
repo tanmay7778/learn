@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Dell Desktops - Choose Your Series{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+        <h1 style="font-weight: 800; font-size: 2.4rem; letter-spacing: -1px; color: var(--dell-gray-900);">
+            Dell Desktops
+        </h1>
+        <p style="color: var(--dell-gray-500); font-size: 1.1rem; max-width: 600px; margin: 12px auto 0;">
+            Choose your series to find the perfect Dell desktop for your needs
+        </p>
+    </div>
+
+    <!-- Series Cards Grid -->
+    <div class="row g-4 justify-content-center">
+        <!-- OPTIPLEX -->
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('desktop_series_page', series_name='optiplex') }}" class="series-card">
+                <div class="series-card-inner">
+                    <div class="series-img-wrapper">
+                        <img src="{{ url_for('static', filename='images/series/optiplex/hero.png') }}" alt="Dell OptiPlex">
+                    </div>
+                    <h3>OptiPlex</h3>
+                    <p class="series-tagline">Enterprise-Grade Reliability</p>
+                    <p class="series-desc">The world's most secure and manageable commercial desktops. Built for enterprise deployments with Intel vPro.</p>
+                    <div class="series-price">Starting from &#8377;34,990</div>
+                    <span class="series-cta">Explore OptiPlex <i class="fas fa-arrow-right ms-2"></i></span>
+                </div>
+            </a>
+        </div>
+
+        <!-- XPS DESKTOP -->
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('desktop_series_page', series_name='xps-desktop') }}" class="series-card">
+                <div class="series-card-inner">
+                    <div class="series-img-wrapper">
+                        <img src="{{ url_for('static', filename='images/series/xps-desktop/hero.png') }}" alt="Dell XPS Desktop">
+                    </div>
+                    <h3>XPS Desktop</h3>
+                    <p class="series-tagline">Premium Performance</p>
+                    <p class="series-desc">Uncompromising power meets elegant design. Workstation-class performance for creators and power users.</p>
+                    <div class="series-price">Starting from &#8377;1,09,990</div>
+                    <span class="series-cta">Explore XPS Desktop <i class="fas fa-arrow-right ms-2"></i></span>
+                </div>
+            </a>
+        </div>
+
+        <!-- INSPIRON DESKTOP -->
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('desktop_series_page', series_name='inspiron-desktop') }}" class="series-card">
+                <div class="series-card-inner">
+                    <div class="series-img-wrapper">
+                        <img src="{{ url_for('static', filename='images/series/inspiron-desktop/hero.png') }}" alt="Dell Inspiron Desktop">
+                    </div>
+                    <h3>Inspiron Desktop</h3>
+                    <p class="series-tagline">Everyday Value</p>
+                    <p class="series-desc">Reliable desktop performance for the whole family. Great value with solid performance for daily tasks.</p>
+                    <div class="series-price">Starting from &#8377;29,990</div>
+                    <span class="series-cta">Explore Inspiron Desktop <i class="fas fa-arrow-right ms-2"></i></span>
+                </div>
+            </a>
+        </div>
+
+        <!-- PRECISION TOWER -->
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('desktop_series_page', series_name='precision-tower') }}" class="series-card">
+                <div class="series-card-inner">
+                    <div class="series-img-wrapper precision-bg">
+                        <img src="{{ url_for('static', filename='images/series/precision-tower/hero.png') }}" alt="Dell Precision Tower">
+                    </div>
+                    <h3>Precision Tower</h3>
+                    <p class="series-tagline">Workstation Power</p>
+                    <p class="series-desc">ISV-certified workstation performance for engineering, data science, and professional applications.</p>
+                    <div class="series-price">Starting from &#8377;1,49,990</div>
+                    <span class="series-cta">Explore Precision <i class="fas fa-arrow-right ms-2"></i></span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- View All Desktops link -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('products', category='desktop') }}" class="btn btn-outline-primary btn-lg" style="border-radius: 50px; padding: 12px 36px;">
+            <i class="fas fa-th-large me-2"></i> View All Desktops
+        </a>
+    </div>
+</div>
+
+<style>
+.series-card { display: block; text-decoration: none; color: inherit; height: 100%; }
+.series-card-inner { background: var(--dell-white); border: 1px solid var(--dell-gray-300); border-radius: var(--radius-lg); padding: 0 0 28px 0; text-align: center; height: 100%; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+.series-card-inner::before { content: \'\'; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--dell-blue); transform: scaleX(0); transition: transform 0.4s ease; }
+.series-card:hover .series-card-inner { transform: translateY(-10px); box-shadow: 0 20px 50px rgba(0,0,0,0.12); border-color: var(--dell-blue); }
+.series-card:hover .series-card-inner::before { transform: scaleX(1); }
+.series-img-wrapper { width: 100%; height: 180px; background: var(--dell-gray-100); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; justify-content: center; padding: 20px; margin-bottom: 20px; overflow: hidden; transition: all 0.4s ease; }
+.series-img-wrapper.precision-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+.series-img-wrapper img { max-height: 140px; max-width: 100%; object-fit: contain; transition: transform 0.5s ease; mix-blend-mode: multiply; }
+.series-img-wrapper.precision-bg img { mix-blend-mode: normal; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3)); }
+.series-card:hover .series-img-wrapper img { transform: scale(1.08); }
+.series-card:hover .series-img-wrapper { background: var(--dell-blue-light); }
+.series-card:hover .series-img-wrapper.precision-bg { background: linear-gradient(135deg, #1a1a2e 0%, #2d3a5e 100%); }
+.series-card-inner h3 { font-weight: 800; font-size: 1.4rem; margin-bottom: 4px; color: var(--dell-gray-900); padding: 0 20px; }
+.series-tagline { font-size: 0.82rem; font-weight: 600; color: var(--dell-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; padding: 0 20px; }
+.series-desc { font-size: 0.86rem; color: var(--dell-gray-500); line-height: 1.6; margin-bottom: 16px; flex-grow: 1; padding: 0 20px; }
+.series-price { font-size: 0.85rem; font-weight: 700; color: var(--dell-gray-700); margin-bottom: 16px; padding: 6px 14px; background: var(--dell-gray-100); border-radius: 50px; }
+.series-cta { font-size: 0.88rem; font-weight: 600; color: var(--dell-blue); transition: all 0.3s ease; }
+.series-card:hover .series-cta { color: var(--dell-blue-dark); }
+@media (max-width: 768px) { .series-img-wrapper { height: 140px; padding: 15px; } .series-img-wrapper img { max-height: 110px; } }
+</style>
+{% endblock %}

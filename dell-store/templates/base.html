@@ -55,12 +55,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('products', category='desktop') }}">
+                        <a class="nav-link" href="{{ url_for('desktops_page') }}">
                             <i class="fas fa-desktop me-1"></i> Desktops
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('products', category='all-in-one') }}">
+                        <a class="nav-link" href="{{ url_for('allinones_page') }}">
                             <i class="fas fa-tv me-1"></i> All-in-Ones
                         </a>
                     </li>
@@ -134,8 +134,8 @@
                     <h5>Products</h5>
                     <ul class="list-unstyled" style="line-height: 2.2;">
                         <li><a href="{{ url_for('laptops_page') }}">Laptops</a></li>
-                        <li><a href="{{ url_for('products', category='desktop') }}">Desktops</a></li>
-                        <li><a href="{{ url_for('products', category='all-in-one') }}">All-in-Ones</a></li>
+                        <li><a href="{{ url_for('desktops_page') }}">Desktops</a></li>
+                        <li><a href="{{ url_for('allinones_page') }}">All-in-Ones</a></li>
                         <li><a href="{{ url_for('products') }}">View All</a></li>
                     </ul>
                 </div>

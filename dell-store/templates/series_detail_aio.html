@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Dell {{ series.name }}{% endblock %}
+
+{% block content %}
+<!-- BREADCRUMB -->
+<div class="container pt-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb" style="font-size: 0.85rem;">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}" style="color: var(--dell-gray-500); text-decoration: none;"><i class="fas fa-home"></i> Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('allinones_page') }}" style="color: var(--dell-gray-500); text-decoration: none;">All-in-Ones</a></li>
+            <li class="breadcrumb-item active" style="font-weight: 600;">Explore {{ series.name }}</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- SERIES NAV SIDEBAR + HERO SECTION -->
+<section class="series-hero">
+    <div class="container">
+        <div class="row">
+            <!-- LEFT: Series Sidebar Nav -->
+            <div class="col-lg-3 d-none d-lg-block">
+                <div class="series-sidebar">
+                    <div class="series-sidebar-current">
+                        <span class="series-sidebar-name">DELL {{ series.name|upper }}</span>
+                        <button class="series-sidebar-arrow" id="sidebarToggleBtn" onclick="toggleSidebarLinks()">
+                            <i class="fas fa-chevron-down" id="sidebarArrowIcon"></i>
+                        </button>
+                    </div>
+                    <div class="series-sidebar-links" id="sidebarLinks">
+                        <p class="series-sidebar-heading">EXPLORE OTHER SERIES</p>
+                        <ul>
+                            <li><a href="{{ url_for('allinones_page') }}">All Dell All-in-Ones</a></li>
+                            {% if series_key != 'inspiron-aio' %}
+                            <li><a href="{{ url_for('aio_series_page', series_name='inspiron-aio') }}">Inspiron AIO</a></li>
+                            {% endif %}
+                            {% if series_key != 'optiplex-aio' %}
+                            <li><a href="{{ url_for('aio_series_page', series_name='optiplex-aio') }}">OptiPlex AIO</a></li>
+                            {% endif %}
+                            {% if series_key != 'xps-aio' %}
+                            <li><a href="{{ url_for('aio_series_page', series_name='xps-aio') }}">XPS AIO</a></li>
+                            {% endif %}
+                            <li><a href="{{ url_for('products', category='all-in-one') }}">View All Models</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Hero Content -->
+            <div class="col-lg-9">
+                <div class="row align-items-center" style="min-height: 420px;">
+                    <div class="col-md-5">
+                        <div class="series-hero-content">
+                            <h1 class="series-hero-title">{{ series.name }}</h1>
+                            <p class="series-hero-tagline">{{ series.tagline }}</p>
+                            <p class="series-hero-desc">{{ series.hero_desc }}</p>
+                            <div class="d-flex gap-3 mt-4">
+                                <a href="{{ url_for('products', category='all-in-one', series=series.name) }}" class="btn btn-primary btn-lg" style="border-radius: 50px; padding: 12px 32px;">
+                                    Shop {{ series.name }} <i class="fas fa-arrow-right ms-2"></i>
+                                </a>
+                                {% if product_count > 0 %}
+                                <span class="align-self-center" style="color: var(--dell-gray-500); font-size: 0.9rem;">
+                                    {{ product_count }} model{{ 's' if product_count != 1 }} available
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7 text-center">
+                        <div class="series-hero-image">
+                            <img src="{{ url_for('static', filename='images/series/' + series_key + '/hero.png') }}" alt="{{ series.name }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Mobile Series Nav -->
+<div class="d-lg-none" style="background: var(--dell-white); border-bottom: 1px solid var(--dell-gray-300); padding: 12px 0;">
+    <div class="container">
+        <div class="d-flex gap-2 overflow-auto pb-1" style="white-space: nowrap;">
+            <a href="{{ url_for('allinones_page') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 50px; font-size: 0.8rem;">All AIOs</a>
+            <a href="{{ url_for('aio_series_page', series_name='inspiron-aio') }}" class="btn btn-sm {% if series_key == 'inspiron-aio' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">Inspiron AIO</a>
+            <a href="{{ url_for('aio_series_page', series_name='optiplex-aio') }}" class="btn btn-sm {% if series_key == 'optiplex-aio' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">OptiPlex AIO</a>
+            <a href="{{ url_for('aio_series_page', series_name='xps-aio') }}" class="btn btn-sm {% if series_key == 'xps-aio' %}btn-primary{% else %}btn-outline-secondary{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">XPS AIO</a>
+        </div>
+    </div>
+</div>
+
+<!-- Scroll indicator -->
+<div class="text-center py-4" style="background: var(--dell-white);">
+    <div class="scroll-indicator">
+        <div class="mouse-icon"><div class="mouse-wheel"></div></div>
+        <i class="fas fa-chevron-down mt-2" style="color: var(--dell-gray-500); font-size: 0.9rem; animation: bounceDown 2s infinite;"></i>
+    </div>
+</div>
+
+<!-- FEATURE SECTIONS -->
+{% for feature in series.features %}
+<section class="feature-section" style="background: {% if loop.index is odd %}var(--dell-gray-100){% else %}var(--dell-white){% endif %};">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            {% if loop.index is odd %}
+            <div class="col-lg-5">
+                <div class="feature-content reveal-left">
+                    <div class="feature-accent-bar"></div>
+                    <h2 class="feature-title">{{ feature.title }}</h2>
+                    <p class="feature-text">{{ feature.desc }}</p>
+                    <a href="{{ url_for('products', category='all-in-one', series=series.name) }}" class="feature-link">
+                        Shop {{ series.name }} <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="feature-image reveal-right" style="background: var(--dell-gray-100);">
+                    <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
+                </div>
+            </div>
+            {% else %}
+            <div class="col-lg-7 order-lg-1 order-2">
+                <div class="feature-image reveal-left" style="background: var(--dell-white);">
+                    <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
+                </div>
+            </div>
+            <div class="col-lg-5 order-lg-2 order-1">
+                <div class="feature-content reveal-right">
+                    <div class="feature-accent-bar"></div>
+                    <h2 class="feature-title">{{ feature.title }}</h2>
+                    <p class="feature-text">{{ feature.desc }}</p>
+                    <a href="{{ url_for('products', category='all-in-one', series=series.name) }}" class="feature-link">
+                        Shop {{ series.name }} <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endfor %}
+
+<!-- Bottom CTA -->
+<section style="background: linear-gradient(135deg, var(--dell-navy) 0%, var(--dell-blue) 100%); padding: 80px 0; text-align: center;">
+    <div class="container">
+        <h2 style="color: white; font-size: 2rem; margin-bottom: 12px;">Ready to explore {{ series.name }}?</h2>
+        <p style="color: rgba(255,255,255,0.7); font-size: 1.05rem; margin-bottom: 30px;">Find the perfect configuration for your needs.</p>
+        <a href="{{ url_for('products', category='all-in-one', series=series.name) }}" class="btn btn-light btn-lg" style="border-radius: 50px; padding: 14px 40px; font-weight: 700; color: var(--dell-navy);">
+            <i class="fas fa-tv me-2"></i> View All {{ series.name }} Models
+        </a>
+    </div>
+</section>
+
+<style>
+.series-sidebar { background: var(--dell-white); border: 1px solid var(--dell-gray-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); position: sticky; top: 100px; }
+.series-sidebar-current { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--dell-gray-300); background: var(--dell-white); cursor: pointer; }
+.series-sidebar-current.collapsed { border-bottom: none; }
+.series-sidebar-name { font-weight: 800; font-size: 1.1rem; color: var(--dell-gray-900); letter-spacing: 0.5px; }
+.series-sidebar-arrow { width: 36px; height: 36px; border: 1px solid var(--dell-gray-300); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--dell-gray-700); background: transparent; cursor: pointer; transition: all 0.3s ease; }
+.series-sidebar-arrow:hover { background: var(--dell-blue); border-color: var(--dell-blue); color: white; }
+.series-sidebar-arrow i { transition: transform 0.3s ease; }
+.series-sidebar-arrow.collapsed i { transform: rotate(-90deg); }
+.series-sidebar-links { padding: 16px 20px 20px; max-height: 300px; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease, opacity 0.25s ease; opacity: 1; }
+.series-sidebar-links.collapsed { max-height: 0; padding: 0 20px; opacity: 0; }
+.series-sidebar-heading { font-size: 0.72rem; font-weight: 700; color: var(--dell-gray-900); letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
+.series-sidebar-links ul { list-style: none; padding: 0; margin: 0; }
+.series-sidebar-links ul li { margin-bottom: 6px; }
+.series-sidebar-links ul li a { color: var(--dell-blue); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: block; padding: 4px 0; }
+.series-sidebar-links ul li a:hover { color: var(--dell-blue-dark); padding-left: 6px; }
+
+.series-hero { background: var(--dell-gray-100); padding: 40px 0 60px; overflow: hidden; }
+.series-hero-title { font-size: 3rem; font-weight: 900; letter-spacing: -2px; color: var(--dell-gray-900); margin-bottom: 4px; }
+.series-hero-tagline { font-size: 1rem; font-weight: 600; color: var(--dell-blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+.series-hero-desc { font-size: 1rem; color: var(--dell-gray-500); line-height: 1.8; max-width: 400px; }
+.series-hero-image { background: var(--dell-gray-100); border-radius: 8px; padding: 10px; }
+.series-hero-image img { max-height: 340px; max-width: 100%; object-fit: contain; mix-blend-mode: multiply; animation: floatHero 6s ease-in-out infinite; }
+@keyframes floatHero { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+
+.scroll-indicator { display: flex; flex-direction: column; align-items: center; }
+.mouse-icon { width: 26px; height: 40px; border: 2px solid var(--dell-gray-500); border-radius: 14px; position: relative; display: flex; justify-content: center; }
+.mouse-wheel { width: 4px; height: 10px; background: var(--dell-gray-500); border-radius: 2px; margin-top: 8px; animation: scrollWheel 2s infinite; }
+@keyframes scrollWheel { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(12px); } }
+@keyframes bounceDown { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(6px); opacity: 1; } }
+
+.feature-section { padding: 100px 0; overflow: hidden; }
+.feature-content { padding: 20px 0; }
+.feature-accent-bar { width: 4px; height: 60px; background: var(--dell-black); margin-bottom: 24px; }
+.feature-title { font-size: 2rem; font-weight: 700; color: var(--dell-gray-900); margin-bottom: 16px; letter-spacing: -0.5px; }
+.feature-text { font-size: 1rem; color: var(--dell-gray-500); line-height: 1.8; margin-bottom: 24px; max-width: 450px; }
+.feature-link { color: var(--dell-blue); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: all 0.3s ease; }
+.feature-link:hover { color: var(--dell-blue-dark); text-decoration: underline; }
+.feature-image { text-align: center; border-radius: 8px; padding: 10px; }
+.feature-image img { max-width: 100%; max-height: 420px; object-fit: contain; mix-blend-mode: multiply; }
+
+.reveal-left, .reveal-right { opacity: 0; transition: all 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.reveal-left { transform: translateX(-60px); }
+.reveal-right { transform: translateX(60px); }
+.reveal-left.revealed, .reveal-right.revealed { opacity: 1; transform: translateX(0); }
+.feature-image.revealed { transition-delay: 0.15s; }
+
+@media (max-width: 992px) { .series-hero { padding: 30px 0 40px; } .series-hero-title { font-size: 2.2rem; } .series-hero-image img { max-height: 240px; } .feature-section { padding: 60px 0; } .feature-title { font-size: 1.6rem; } .feature-image img { max-height: 280px; } }
+@media (max-width: 768px) { .series-hero-title { font-size: 1.8rem; } .feature-section { padding: 40px 0; } .feature-accent-bar { height: 40px; } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const revealElements = document.querySelectorAll('.reveal-left, .reveal-right');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('revealed'); observer.unobserve(entry.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+    revealElements.forEach(el => observer.observe(el));
+});
+function toggleSidebarLinks() {
+    document.getElementById('sidebarLinks').classList.toggle('collapsed');
+    document.getElementById('sidebarToggleBtn').classList.toggle('collapsed');
+    document.querySelector('.series-sidebar-current').classList.toggle('collapsed');
+}
+</script>
+{% endblock %}

@@ -29,8 +29,8 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 SERIES_FOLDER = os.path.join(app.static_folder, "images", "series")
 os.makedirs(SERIES_FOLDER, exist_ok=True)
-# Per-series image folders
-for _series in ["inspiron", "vostro", "xps", "alienware"]:
+# Per-series image folders (laptops, desktops, all-in-ones)
+for _series in ["inspiron", "vostro", "xps", "alienware", "optiplex", "precision-tower", "inspiron-desktop", "xps-desktop", "inspiron-aio", "optiplex-aio", "xps-aio"]:
     os.makedirs(os.path.join(SERIES_FOLDER, _series), exist_ok=True)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_FOLDER, exist_ok=True)
@@ -181,6 +181,234 @@ def series_page(series_name):
         series_key=series_name,
         product_count=product_count,
     )
+
+
+# ==========================================
+# DESKTOP SERIES INFO & ROUTES
+# ==========================================
+
+DESKTOP_SERIES_INFO = {
+    "optiplex": {
+        "name": "OptiPlex",
+        "tagline": "Enterprise-Grade Reliability",
+        "hero_desc": "The world's most secure and manageable commercial desktops. Built for enterprise deployments with Intel vPro and comprehensive security features.",
+        "features": [
+            {
+                "title": "Enterprise security built-in",
+                "desc": "Hardware-based security with Intel vPro, TPM 2.0, and Dell SafeBIOS. Chassis intrusion detection and port lockout keep your business data protected at every level.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Compact & flexible form factors",
+                "desc": "From Micro (1.1L) to Tower, choose the form factor that fits your workspace. VESA-mountable micro desktops hide behind monitors for a clutter-free desk.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Built for manageability",
+                "desc": "Intel vPro with AMT enables remote management and out-of-band troubleshooting. Dell Client Command Suite provides zero-touch deployment for IT teams.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "xps-desktop": {
+        "name": "XPS Desktop",
+        "tagline": "Premium Performance",
+        "hero_desc": "Uncompromising power meets elegant design. XPS Desktop delivers workstation-class performance for creators, developers, and power users.",
+        "features": [
+            {
+                "title": "Creator-grade power",
+                "desc": "Up to Intel Core i9 and NVIDIA RTX 4090 graphics. Handle 8K video editing, 3D rendering, and complex simulations without breaking a sweat.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Elegant minimalist design",
+                "desc": "Sleek chassis with premium materials and tool-less interior access. Thoughtful cable management and whisper-quiet thermals keep your workspace pristine.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Expandable & future-proof",
+                "desc": "Up to 128GB DDR5 RAM, multiple M.2 NVMe slots, and full-length PCIe 5.0 x16 support. Upgrade components as your needs grow without replacing the system.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "inspiron-desktop": {
+        "name": "Inspiron Desktop",
+        "tagline": "Everyday Value",
+        "hero_desc": "Reliable desktop performance for the whole family. From homework to home entertainment, Inspiron Desktop delivers great value with solid performance.",
+        "features": [
+            {
+                "title": "Perfect for home & family",
+                "desc": "Intel Core processors and ample storage handle everyday tasks with ease — browsing, streaming, homework, and light photo editing all run smoothly.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Quiet & compact",
+                "desc": "Optimized thermals keep noise levels low during extended use. Compact tower design fits neatly into any home office or living room setup.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Easy connectivity",
+                "desc": "Multiple USB ports, HDMI, and SD card reader for all your peripherals. Wi-Fi 6 and Bluetooth 5.2 keep you connected wirelessly throughout your home.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "precision-tower": {
+        "name": "Precision Tower",
+        "tagline": "Workstation Power",
+        "hero_desc": "ISV-certified workstation performance for engineering, data science, and professional applications. Designed for the most demanding workflows.",
+        "features": [
+            {
+                "title": "ISV-certified reliability",
+                "desc": "Tested and certified by leading ISVs including Autodesk, SolidWorks, Siemens NX, and ANSYS. Your critical applications run exactly as intended, every time.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Professional GPU options",
+                "desc": "NVIDIA RTX A6000 and AMD Radeon Pro graphics with ECC memory. Drive multiple 8K displays and accelerate complex CAD, BIM, and simulation workloads.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Scalable for any workload",
+                "desc": "Up to dual Intel Xeon processors, 4TB RAM, and 12 storage bays. Configure for AI/ML training, fluid dynamics, or large-scale data analysis.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+}
+
+
+@app.route("/desktops")
+def desktops_page():
+    """Desktop series landing page — shows OptiPlex, XPS Desktop, Inspiron Desktop, Precision Tower cards."""
+    return render_template("desktops.html")
+
+
+@app.route("/desktops/<series_name>")
+def desktop_series_page(series_name):
+    """Individual desktop series landing page with scroll-reveal features."""
+    series_name = series_name.lower()
+    if series_name not in DESKTOP_SERIES_INFO:
+        flash("Series not found!", "error")
+        return redirect(url_for("desktops_page"))
+
+    series = DESKTOP_SERIES_INFO[series_name]
+
+    product_count = Product.query.filter_by(
+        category="desktop", dell_series=series["name"], in_stock=True
+    ).count()
+
+    return render_template(
+        "series_detail_desktop.html",
+        series=series,
+        series_key=series_name,
+        product_count=product_count,
+    )
+
+
+# ==========================================
+# ALL-IN-ONE SERIES INFO & ROUTES
+# ==========================================
+
+AIO_SERIES_INFO = {
+    "inspiron-aio": {
+        "name": "Inspiron AIO",
+        "tagline": "Family Entertainment Hub",
+        "hero_desc": "A beautiful all-in-one that brings the whole family together. Stunning display, powerful performance, and minimal clutter in one elegant package.",
+        "features": [
+            {
+                "title": "Stunning immersive display",
+                "desc": "Up to 27-inch FHD display with narrow bezels and anti-glare coating. Perfect for movie nights, video calls, and creative projects from any viewing angle.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Space-saving elegance",
+                "desc": "All the power of a desktop hidden behind a beautiful display. Adjustable stand with cable management keeps your desk clean and your setup minimal.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Built-in entertainment",
+                "desc": "Dual speakers with MaxxAudio, FHD webcam with privacy shutter, and pop-up webcam options. Everything you need for streaming, video calls, and music.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "optiplex-aio": {
+        "name": "OptiPlex AIO",
+        "tagline": "Business All-in-One",
+        "hero_desc": "Enterprise-ready all-in-one with space-saving design. Perfect for business environments where desk real estate and IT manageability matter.",
+        "features": [
+            {
+                "title": "Enterprise-ready performance",
+                "desc": "Intel Core processors with vPro support and up to 64GB RAM. Handles business applications, virtual meetings, and multitasking with enterprise-grade reliability.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Minimal footprint, maximum productivity",
+                "desc": "Replace your desktop tower AND monitor with a single device. VESA-compatible and height-adjustable stand options for ergonomic workspace configurations.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Secure & manageable",
+                "desc": "TPM 2.0, Dell SafeBIOS, and Intel vPro for IT fleet management. Camera privacy shutter and optional smart card reader for secure authentication.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+    "xps-aio": {
+        "name": "XPS AIO",
+        "tagline": "Premium All-in-One",
+        "hero_desc": "Dell's most premium all-in-one experience. A 4K touch display, studio-quality audio, and powerhouse performance in a stunningly thin design.",
+        "features": [
+            {
+                "title": "4K InfinityEdge touch display",
+                "desc": "27-inch 4K UHD display with 100% sRGB and factory calibration. Touch-enabled with Dell stylus support for creative workflows and natural interaction.",
+                "image": "feature1.png",
+            },
+            {
+                "title": "Studio-quality audio & video",
+                "desc": "Quad-speaker design with Waves MaxxAudio. 5MP IR camera with Windows Hello and spatial audio for immersive entertainment and professional video calls.",
+                "image": "feature2.png",
+            },
+            {
+                "title": "Artisan craftsmanship",
+                "desc": "Machined aluminum chassis just 14.9mm thin. Articulating stand with full tilt/height adjustment. A masterpiece of engineering that elevates any room.",
+                "image": "feature3.png",
+            },
+        ],
+    },
+}
+
+
+@app.route("/all-in-ones")
+def allinones_page():
+    """All-in-One series landing page — shows Inspiron AIO, OptiPlex AIO, XPS AIO cards."""
+    return render_template("allinones.html")
+
+
+@app.route("/all-in-ones/<series_name>")
+def aio_series_page(series_name):
+    """Individual AIO series landing page with scroll-reveal features."""
+    series_name = series_name.lower()
+    if series_name not in AIO_SERIES_INFO:
+        flash("Series not found!", "error")
+        return redirect(url_for("allinones_page"))
+
+    series = AIO_SERIES_INFO[series_name]
+
+    product_count = Product.query.filter_by(
+        category="all-in-one", dell_series=series["name"], in_stock=True
+    ).count()
+
+    return render_template(
+        "series_detail_aio.html",
+        series=series,
+        series_key=series_name,
+        product_count=product_count,
+    )
+
+
 
 
 @app.route("/products")
