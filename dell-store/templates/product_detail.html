@@ -187,30 +187,44 @@
 
             <!-- Specifications -->
             <h5 style="font-weight: 700; margin-bottom: 16px;">
-                <i class="fas fa-list-ul me-2" style="color: var(--dell-blue);"></i> Specifications
+                <i class="fas fa-list-ul me-2" style="color: var(--dell-blue);"></i> {% if product.category == 'accessory' %}Details{% else %}Specifications{% endif %}
             </h5>
             <table class="table spec-table" style="font-size: 0.9rem;">
                 <tbody>
-                    {% if product.processor %}
-                    <tr><th><i class="fas fa-microchip me-2"></i>Processor</th><td>{{ product.processor }}</td></tr>
-                    {% endif %}
-                    {% if product.ram %}
-                    <tr><th><i class="fas fa-memory me-2"></i>RAM</th><td>{{ product.ram }}</td></tr>
-                    {% endif %}
-                    {% if product.storage %}
-                    <tr><th><i class="fas fa-hdd me-2"></i>Storage</th><td>{{ product.storage }}</td></tr>
-                    {% endif %}
-                    {% if product.display %}
-                    <tr><th><i class="fas fa-tv me-2"></i>Display</th><td>{{ product.display }}</td></tr>
-                    {% endif %}
-                    {% if product.graphics %}
-                    <tr><th><i class="fas fa-gamepad me-2"></i>Graphics</th><td>{{ product.graphics }}</td></tr>
-                    {% endif %}
-                    {% if product.os %}
-                    <tr><th><i class="fab fa-windows me-2"></i>OS</th><td>{{ product.os }}</td></tr>
-                    {% endif %}
-                    {% if product.weight %}
-                    <tr><th><i class="fas fa-weight-hanging me-2"></i>Weight</th><td>{{ product.weight }}</td></tr>
+                    {% if product.category == 'accessory' %}
+                        {# Accessory-specific layout: show processor field as Description #}
+                        {% if product.processor %}
+                        <tr><th><i class="fas fa-info-circle me-2"></i>Description</th><td>{{ product.processor }}</td></tr>
+                        {% endif %}
+                        {% if product.dell_series %}
+                        <tr><th><i class="fas fa-tag me-2"></i>Type</th><td>{{ product.dell_series }}</td></tr>
+                        {% endif %}
+                        {% if product.weight %}
+                        <tr><th><i class="fas fa-weight-hanging me-2"></i>Weight</th><td>{{ product.weight }}</td></tr>
+                        {% endif %}
+                    {% else %}
+                        {# Laptop / Desktop / AIO layout #}
+                        {% if product.processor %}
+                        <tr><th><i class="fas fa-microchip me-2"></i>Processor</th><td>{{ product.processor }}</td></tr>
+                        {% endif %}
+                        {% if product.ram %}
+                        <tr><th><i class="fas fa-memory me-2"></i>RAM</th><td>{{ product.ram }}</td></tr>
+                        {% endif %}
+                        {% if product.storage %}
+                        <tr><th><i class="fas fa-hdd me-2"></i>Storage</th><td>{{ product.storage }}</td></tr>
+                        {% endif %}
+                        {% if product.display %}
+                        <tr><th><i class="fas fa-tv me-2"></i>Display</th><td>{{ product.display }}</td></tr>
+                        {% endif %}
+                        {% if product.graphics %}
+                        <tr><th><i class="fas fa-gamepad me-2"></i>Graphics</th><td>{{ product.graphics }}</td></tr>
+                        {% endif %}
+                        {% if product.os %}
+                        <tr><th><i class="fab fa-windows me-2"></i>OS</th><td>{{ product.os }}</td></tr>
+                        {% endif %}
+                        {% if product.weight %}
+                        <tr><th><i class="fas fa-weight-hanging me-2"></i>Weight</th><td>{{ product.weight }}</td></tr>
+                        {% endif %}
                     {% endif %}
                 </tbody>
             </table>
