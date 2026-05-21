@@ -1,5 +1,87 @@
 {% extends "base.html" %}
-{% block title %}{{ product.name }} - Dell Store{% endblock %}
+{% block title %}{{ product.name }} - Dell Store
+<style>
+/* WHY BUY FROM US — Product Page Strip */
+.why-buy-strip {
+    border: 1px solid var(--dell-gray-300);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--dell-white);
+}
+.why-buy-header {
+    background: linear-gradient(135deg, var(--dell-navy) 0%, var(--dell-blue) 100%);
+    color: white;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+}
+.why-buy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+.why-buy-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--dell-gray-200, #eee);
+    border-right: 1px solid var(--dell-gray-200, #eee);
+    transition: background 0.2s ease;
+}
+.why-buy-item:hover {
+    background: var(--dell-blue-light, #f0f7ff);
+}
+.why-buy-item:nth-child(2n) {
+    border-right: none;
+}
+.why-buy-item:nth-child(n+3) {
+    border-bottom: none;
+}
+.why-buy-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: var(--dell-blue-light, #e8f4fd);
+    color: var(--dell-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+.why-buy-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.why-buy-text strong {
+    font-size: 0.82rem;
+    color: var(--dell-gray-900);
+}
+.why-buy-text span {
+    font-size: 0.75rem;
+    color: var(--dell-gray-500);
+    line-height: 1.4;
+}
+.why-buy-footer {
+    background: var(--dell-gray-100);
+    padding: 10px 18px;
+    font-size: 0.75rem;
+    color: var(--dell-gray-700);
+    font-weight: 500;
+    border-top: 1px solid var(--dell-gray-200, #eee);
+}
+@media (max-width: 768px) {
+    .why-buy-grid { grid-template-columns: 1fr; }
+    .why-buy-item { border-right: none !important; border-bottom: 1px solid var(--dell-gray-200, #eee) !important; }
+    .why-buy-item:last-child { border-bottom: none !important; }
+}
+</style>
+
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -155,6 +237,46 @@
                     <i class="fas fa-truck me-1"></i> Free delivery in 2-4 days
                 </span>
             </div>
+
+            <!-- WHY BUY FROM US — Value Comparison Strip -->
+            <div class="why-buy-strip mt-4">
+                <div class="why-buy-header">
+                    <i class="fas fa-shield-alt me-2"></i> Why buy from an Authorized Dell Store?
+                </div>
+                <div class="why-buy-grid">
+                    <div class="why-buy-item">
+                        <div class="why-buy-icon"><i class="fas fa-tools"></i></div>
+                        <div class="why-buy-text">
+                            <strong>Free Setup & Installation</strong>
+                            <span>We configure your device — Amazon/Flipkart just ship a box</span>
+                        </div>
+                    </div>
+                    <div class="why-buy-item">
+                        <div class="why-buy-icon"><i class="fas fa-user-shield"></i></div>
+                        <div class="why-buy-text">
+                            <strong>On-Site Warranty Support</strong>
+                            <span>Walk-in repairs by Dell-certified technicians. No call centers.</span>
+                        </div>
+                    </div>
+                    <div class="why-buy-item">
+                        <div class="why-buy-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                        <div class="why-buy-text">
+                            <strong>Trade-In Your Old Device</strong>
+                            <span>Get ₹3,000–₹15,000 off instantly. Marketplaces don't offer this.</span>
+                        </div>
+                    </div>
+                    <div class="why-buy-item">
+                        <div class="why-buy-icon"><i class="fas fa-box-open"></i></div>
+                        <div class="why-buy-text">
+                            <strong>Bundle & Save</strong>
+                            <span>Laptop + Bag + Mouse + 3-Year Warranty = Exclusive combo pricing</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="why-buy-footer">
+                    <i class="fas fa-bolt me-1"></i> Same-day emergency service available (₹500 extra) · Walk-in Mon-Sat, 10 AM - 8 PM
+                </div>
+            </div>
         </div>
     </div>
 
@@ -275,4 +397,86 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 {% endif %}
+
+<style>
+/* WHY BUY FROM US — Product Page Strip */
+.why-buy-strip {
+    border: 1px solid var(--dell-gray-300);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--dell-white);
+}
+.why-buy-header {
+    background: linear-gradient(135deg, var(--dell-navy) 0%, var(--dell-blue) 100%);
+    color: white;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+}
+.why-buy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+.why-buy-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--dell-gray-200, #eee);
+    border-right: 1px solid var(--dell-gray-200, #eee);
+    transition: background 0.2s ease;
+}
+.why-buy-item:hover {
+    background: var(--dell-blue-light, #f0f7ff);
+}
+.why-buy-item:nth-child(2n) {
+    border-right: none;
+}
+.why-buy-item:nth-child(n+3) {
+    border-bottom: none;
+}
+.why-buy-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: var(--dell-blue-light, #e8f4fd);
+    color: var(--dell-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+.why-buy-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.why-buy-text strong {
+    font-size: 0.82rem;
+    color: var(--dell-gray-900);
+}
+.why-buy-text span {
+    font-size: 0.75rem;
+    color: var(--dell-gray-500);
+    line-height: 1.4;
+}
+.why-buy-footer {
+    background: var(--dell-gray-100);
+    padding: 10px 18px;
+    font-size: 0.75rem;
+    color: var(--dell-gray-700);
+    font-weight: 500;
+    border-top: 1px solid var(--dell-gray-200, #eee);
+}
+@media (max-width: 768px) {
+    .why-buy-grid { grid-template-columns: 1fr; }
+    .why-buy-item { border-right: none !important; border-bottom: 1px solid var(--dell-gray-200, #eee) !important; }
+    .why-buy-item:last-child { border-bottom: none !important; }
+}
+</style>
+
 {% endblock %}
