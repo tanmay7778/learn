@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Dell Accessories - Batteries, Keyboards, Mice & More{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+        <h1 style="font-weight: 800; font-size: 2.4rem; letter-spacing: -1px; color: var(--dell-gray-900);">
+            Dell Accessories
+        </h1>
+        <p style="color: var(--dell-gray-500); font-size: 1.1rem; max-width: 600px; margin: 12px auto 0;">
+            Genuine Dell accessories — batteries, keyboards, mice, chargers, and more
+        </p>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="d-flex gap-2 justify-content-center flex-wrap mb-4">
+        <button class="acc-filter-btn active" data-filter="all">All</button>
+        <button class="acc-filter-btn" data-filter="battery">Batteries</button>
+        <button class="acc-filter-btn" data-filter="keyboard">Keyboards</button>
+        <button class="acc-filter-btn" data-filter="mouse">Mice</button>
+        <button class="acc-filter-btn" data-filter="charger">Chargers</button>
+        <button class="acc-filter-btn" data-filter="bag">Bags & Cases</button>
+        <button class="acc-filter-btn" data-filter="other">Other</button>
+    </div>
+
+    {% if accessories %}
+    <!-- Accessories Grid -->
+    <div class="row g-4" id="accessoriesGrid">
+        {% for product in accessories %}
+        <div class="col-lg-3 col-md-4 col-sm-6 acc-item" data-category="{{ product.dell_series|lower if product.dell_series else 'other' }}">
+            <div class="product-card">
+                <div class="card-img-wrapper">
+                    {% if product.discount_percent and product.discount_percent > 0 %}
+                    <span class="discount-badge">{{ product.discount_percent|int }}% OFF</span>
+                    {% endif %}
+                    <img src="{{ product.image_url or url_for('static', filename='images/series/inspiron/hero.png') }}"
+                         alt="{{ product.name }}" style="width: 100%; height: 200px; object-fit: contain;">
+                </div>
+                <div class="card-body">
+                    {% if product.dell_series %}
+                    <span class="acc-badge">{{ product.dell_series }}</span>
+                    {% endif %}
+                    <h6 class="card-title">{{ product.name[:55] }}</h6>
+                    <p class="card-specs">
+                        {{ product.processor[:50] if product.processor else '' }}
+                    </p>
+                    <div class="price-section">
+                        <span class="price-current">₹{{ "{:,.0f}".format(product.selling_price) }}</span>
+                        {% if product.dell_mrp and product.dell_mrp > product.selling_price %}
+                        <span class="price-original">₹{{ "{:,.0f}".format(product.dell_mrp) }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn-view">
+                        View Details <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <div style="padding: 60px 20px;">
+            <i class="fas fa-keyboard fa-4x mb-4" style="color: var(--dell-gray-300);"></i>
+            <h3 style="color: var(--dell-gray-700);">No Accessories Yet</h3>
+            <p style="color: var(--dell-gray-500); max-width: 500px; margin: 0 auto;">
+                Accessories can be added via the Admin Panel using Excel upload.<br>
+                Set <strong>category = "accessory"</strong> and use the <strong>dell_series</strong> column for subcategory
+                (e.g., Battery, Keyboard, Mouse, Charger, Bag).
+            </p>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-upload me-2"></i> Go to Admin Panel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.acc-filter-btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    border: 1px solid var(--dell-gray-300);
+    background: var(--dell-white);
+    color: var(--dell-gray-700);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.acc-filter-btn:hover {
+    border-color: var(--dell-blue);
+    color: var(--dell-blue);
+}
+.acc-filter-btn.active {
+    background: var(--dell-blue);
+    border-color: var(--dell-blue);
+    color: white;
+}
+.acc-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 50px;
+    background: var(--dell-blue-light, #e8f4fd);
+    color: var(--dell-blue);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.acc-item.hidden {
+    display: none !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterBtns = document.querySelectorAll('.acc-filter-btn');
+    const items = document.querySelectorAll('.acc-item');
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active button
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const filter = this.dataset.filter;
+
+            items.forEach(item => {
+                if (filter === 'all' || item.dataset.category === filter) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

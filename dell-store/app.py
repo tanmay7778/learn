@@ -411,6 +411,15 @@ def aio_series_page(series_name):
 
 
 
+@app.route("/accessories")
+def accessories_page():
+    """Accessories page — batteries, keyboards, mice, chargers, etc."""
+    # Group accessories by subcategory (dell_series field used as subcategory for accessories)
+    accessories = Product.query.filter_by(category="accessory", in_stock=True).order_by(Product.dell_series, Product.name).all()
+    return render_template("accessories.html", accessories=accessories)
+
+
+
 @app.route("/products")
 def products():
     category = request.args.get("category", "all")
@@ -812,20 +821,20 @@ def download_template():
         return jsonify({"error": "Unauthorized"}), 403
 
     sample_data = {
-        "name": ["Dell Inspiron 15 3520", "Dell XPS 13 9340"],
-        "category": ["laptop", "laptop"],
-        "dell_series": ["Inspiron", "XPS"],
-        "processor": ["12th Gen Intel Core i5-1235U", "Intel Core Ultra 7 155H"],
-        "ram": ["8 GB DDR4", "16 GB LPDDR5x"],
-        "storage": ["512 GB SSD", "512 GB PCIe NVMe SSD"],
-        "display": ["15.6 inch FHD", "13.4 inch FHD+"],
-        "graphics": ["Intel Iris Xe", "Intel Arc"],
-        "os": ["Windows 11 Home", "Windows 11 Pro"],
-        "weight": ["1.65 kg", "1.17 kg"],
-        "dell_mrp": [58990, 149990],
-        "selling_price": [54990, 139990],
-        "stock_quantity": [15, 5],
-        "image_url": ["", ""],
+        "name": ["Dell Inspiron 15 3520", "Dell XPS 13 9340", "Dell 65W USB-C Adapter", "Dell Pro Wireless Keyboard KB5221W"],
+        "category": ["laptop", "laptop", "accessory", "accessory"],
+        "dell_series": ["Inspiron", "XPS", "Charger", "Keyboard"],
+        "processor": ["12th Gen Intel Core i5-1235U", "Intel Core Ultra 7 155H", "65W USB-C Power Delivery, compact design", "Wireless 2.4GHz, programmable keys, full-size"],
+        "ram": ["8 GB DDR4", "16 GB LPDDR5x", "", ""],
+        "storage": ["512 GB SSD", "512 GB PCIe NVMe SSD", "", ""],
+        "display": ["15.6 inch FHD", "13.4 inch FHD+", "", ""],
+        "graphics": ["Intel Iris Xe", "Intel Arc", "", ""],
+        "os": ["Windows 11 Home", "Windows 11 Pro", "", ""],
+        "weight": ["1.65 kg", "1.17 kg", "0.3 kg", "0.5 kg"],
+        "dell_mrp": [58990, 149990, 3499, 4999],
+        "selling_price": [54990, 139990, 2999, 4499],
+        "stock_quantity": [15, 5, 50, 30],
+        "image_url": ["", "", "", ""],
     }
     df = pd.DataFrame(sample_data)
     output = io.BytesIO()
