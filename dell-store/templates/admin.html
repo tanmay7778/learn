@@ -191,19 +191,21 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Category *</label>
-                            <select name="category" class="form-select" required>
+                            <select name="category" id="addProductCategory" class="form-select" required onchange="updateSeriesOptions()">
                                 <option value="laptop">Laptop</option>
                                 <option value="desktop">Desktop</option>
                                 <option value="all-in-one">All-in-One</option>
+                                <option value="accessory">Accessory</option>
                             </select>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Series</label>
-                            <select name="dell_series" class="form-select">
+                            <label class="form-label" id="seriesLabel">Series</label>
+                            <select name="dell_series" id="addProductSeries" class="form-select">
                                 <option value="Inspiron">Inspiron</option>
                                 <option value="XPS">XPS</option>
                                 <option value="Latitude">Latitude</option>
                                 <option value="Vostro">Vostro</option>
+                                <option value="Alienware">Alienware</option>
                                 <option value="OptiPlex">OptiPlex</option>
                                 <option value="Precision">Precision</option>
                             </select>
@@ -211,8 +213,8 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Processor</label>
-                            <input type="text" name="processor" class="form-control" placeholder="e.g. 13th Gen Intel Core i5-1345U">
+                            <label class="form-label" id="processorLabel">Processor</label>
+                            <input type="text" name="processor" id="processorInput" class="form-control" placeholder="e.g. 13th Gen Intel Core i5-1345U">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">RAM</label>
@@ -305,5 +307,66 @@
 </div>
 {% endif %}
 {% endfor %}
+
+<!-- Dynamic Series dropdown based on Category -->
+<script>
+function updateSeriesOptions() {
+    const category = document.getElementById('addProductCategory').value;
+    const seriesSelect = document.getElementById('addProductSeries');
+    const seriesLabel = document.getElementById('seriesLabel');
+    const processorLabel = document.getElementById('processorLabel');
+    const processorInput = document.getElementById('processorInput');
+
+    const seriesOptions = {
+        laptop: [
+            {value: 'Inspiron', label: 'Inspiron'},
+            {value: 'XPS', label: 'XPS'},
+            {value: 'Latitude', label: 'Latitude'},
+            {value: 'Vostro', label: 'Vostro'},
+            {value: 'Alienware', label: 'Alienware'},
+        ],
+        desktop: [
+            {value: 'OptiPlex', label: 'OptiPlex'},
+            {value: 'XPS Desktop', label: 'XPS Desktop'},
+            {value: 'Inspiron Desktop', label: 'Inspiron Desktop'},
+            {value: 'Precision Tower', label: 'Precision Tower'},
+        ],
+        'all-in-one': [
+            {value: 'Inspiron AIO', label: 'Inspiron AIO'},
+            {value: 'OptiPlex AIO', label: 'OptiPlex AIO'},
+            {value: 'XPS AIO', label: 'XPS AIO'},
+        ],
+        accessory: [
+            {value: 'Battery', label: 'Battery'},
+            {value: 'Keyboard', label: 'Keyboard'},
+            {value: 'Mouse', label: 'Mouse'},
+            {value: 'Charger', label: 'Charger'},
+            {value: 'Bag', label: 'Bag'},
+            {value: 'Other', label: 'Other'},
+        ],
+    };
+
+    // Update series dropdown
+    seriesSelect.innerHTML = '';
+    const options = seriesOptions[category] || seriesOptions['laptop'];
+    options.forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.value;
+        el.textContent = opt.label;
+        seriesSelect.appendChild(el);
+    });
+
+    // Update labels for accessory
+    if (category === 'accessory') {
+        seriesLabel.textContent = 'Sub-Category';
+        processorLabel.textContent = 'Description';
+        processorInput.placeholder = 'e.g. 65W USB-C, compact design';
+    } else {
+        seriesLabel.textContent = 'Series';
+        processorLabel.textContent = 'Processor';
+        processorInput.placeholder = 'e.g. 13th Gen Intel Core i5-1345U';
+    }
+}
+</script>
 
 {% endblock %}
