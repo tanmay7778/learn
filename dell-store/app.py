@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Product, User, Order, OrderItem, Review, ProductImage
+from models import db, Product, User, Order, OrderItem, Review, ProductImage, ServiceRequest, ServicePart
 from config import Config
 
 # Suppress SSL warnings (corporate proxy intercepts HTTPS)
@@ -33,10 +33,6 @@ os.makedirs(SERIES_FOLDER, exist_ok=True)
 # Per-series image folders (laptops, desktops, all-in-ones)
 for _series in ["inspiron", "vostro", "xps", "alienware", "optiplex", "precision-tower", "inspiron-desktop", "xps-desktop", "inspiron-aio", "optiplex-aio", "xps-aio"]:
     os.makedirs(os.path.join(SERIES_FOLDER, _series), exist_ok=True)
-DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
-os.makedirs(DATA_FOLDER, exist_ok=True)
-PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
-
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -920,16 +916,19 @@ def admin_service_requests():
     if not current_user.is_admin:
         flash("Access denied!", "error")
         return redirect(url_for("index"))
-    requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
-    service_requests = []
-    if os.path.exists(requests_path):
-        try:
-            with open(requests_path, "r") as f:
-                service_requests = json.load(f)
-        except (json.JSONDecodeError, IOError):
-            service_requests = []
-    service_requests.reverse()
-    return render_template("admin_service_requests.html", requests=service_requests)
+    service_requests = ServiceRequest.query.order_by(ServiceRequest.created_at.desc()).all()
+    # Convert to dict format for template backward compatibility
+    requests_list = [{
+        "request_id": sr.request_id,
+        "customer_name": sr.customer_name,
+        "customer_phone": sr.customer_phone,
+        "model": sr.model,
+        "issue_description": sr.issue_description,
+        "total_estimate": sr.total_estimate,
+        "status": sr.status,
+        "created_at": sr.created_at.isoformat() if sr.created_at else "",
+    } for sr in service_requests]
+    return render_template("admin_service_requests.html", requests=requests_list)
 
 
 @app.route("/admin/service-requests/<request_id>/status", methods=["POST"])
@@ -937,17 +936,11 @@ def admin_service_requests():
 def update_service_status(request_id):
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
-    requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
     new_status = request.form["status"]
-    if os.path.exists(requests_path):
-        with open(requests_path, "r") as f:
-            all_requests = json.load(f)
-        for req in all_requests:
-            if req["request_id"] == request_id:
-                req["status"] = new_status
-                break
-        with open(requests_path, "w") as f:
-            json.dump(all_requests, f, indent=2)
+    sr = ServiceRequest.query.filter_by(request_id=request_id).first()
+    if sr:
+        sr.status = new_status
+        db.session.commit()
     flash(f"Service request {request_id} updated to '{new_status}'.", "success")
     return redirect(url_for("admin_service_requests"))
 
@@ -981,10 +974,21 @@ def upload_service_parts():
             flash(f"Missing required columns: {', '.join(missing)}. Need: model, part, part_code, price, labour_charge", "error")
             return redirect(url_for("admin_panel"))
 
-        # Save to the service_parts.xlsx path
-        df.to_excel(PARTS_EXCEL_PATH, index=False, engine="openpyxl")
+        # Clear existing parts and bulk insert from Excel
+        ServicePart.query.delete()
+        for _, row in df.iterrows():
+            part = ServicePart(
+                model=str(row["model"]).strip(),
+                part=str(row["part"]).strip(),
+                part_code=str(row["part_code"]).strip(),
+                price=float(row["price"]),
+                labour_charge=float(row.get("labour_charge", 0)),
+            )
+            db.session.add(part)
+        db.session.commit()
         flash(f"Service parts updated! {len(df)} parts loaded for {df['model'].nunique()} models.", "success")
     except Exception as e:
+        db.session.rollback()
         flash(f"Error reading file: {str(e)}", "error")
 
     return redirect(url_for("admin_panel"))
@@ -1076,77 +1080,14 @@ CONVERSATION STYLE:
 """
 
 
-def _create_default_parts_excel():
-    """Auto-generate service_parts.xlsx if missing or corrupted."""
-    parts = [
-        ("Dell Inspiron 15 3520", "Screen/Display", "LCD-3520", 4500, 800),
-        ("Dell Inspiron 15 3520", "Keyboard", "KB-3520", 1800, 500),
-        ("Dell Inspiron 15 3520", "Battery", "BAT-3520", 3200, 400),
-        ("Dell Inspiron 15 3520", "Motherboard", "MB-3520", 12500, 1500),
-        ("Dell Inspiron 15 3520", "RAM (8GB DDR4)", "RAM8-3520", 2200, 300),
-        ("Dell Inspiron 15 3520", "SSD (512GB)", "SSD512-3520", 3500, 400),
-        ("Dell Inspiron 15 3520", "Charger/Adapter", "CHG-3520", 1500, 0),
-        ("Dell Inspiron 15 3520", "Touchpad", "TP-3520", 1200, 600),
-        ("Dell Inspiron 15 3520", "Fan/Cooling", "FAN-3520", 900, 500),
-        ("Dell Inspiron 15 3520", "Hinge", "HNG-3520", 1100, 700),
-        ("Dell Inspiron 14 5430", "Screen/Display", "LCD-5430", 6500, 800),
-        ("Dell Inspiron 14 5430", "Keyboard", "KB-5430", 2200, 500),
-        ("Dell Inspiron 14 5430", "Battery", "BAT-5430", 4000, 400),
-        ("Dell Inspiron 14 5430", "Motherboard", "MB-5430", 16000, 1500),
-        ("Dell Inspiron 14 5430", "RAM (16GB LPDDR5)", "RAM16-5430", 4500, 300),
-        ("Dell Inspiron 14 5430", "SSD (512GB)", "SSD512-5430", 3500, 400),
-        ("Dell Inspiron 14 5430", "Charger/Adapter", "CHG-5430", 1800, 0),
-        ("Dell Inspiron 14 5430", "Fan/Cooling", "FAN-5430", 1100, 500),
-        ("Dell XPS 13 9340", "Screen/Display", "LCD-9340", 12000, 1000),
-        ("Dell XPS 13 9340", "Keyboard", "KB-9340", 3500, 600),
-        ("Dell XPS 13 9340", "Battery", "BAT-9340", 5500, 500),
-        ("Dell XPS 13 9340", "Motherboard", "MB-9340", 28000, 2000),
-        ("Dell XPS 13 9340", "RAM (16GB LPDDR5x)", "RAM16-9340", 5500, 300),
-        ("Dell XPS 13 9340", "SSD (512GB NVMe)", "SSD512-9340", 4500, 400),
-        ("Dell XPS 13 9340", "Charger (USB-C)", "CHG-9340", 2500, 0),
-        ("Dell XPS 13 9340", "Fan/Cooling", "FAN-9340", 1500, 600),
-        ("Dell XPS 15 9530", "Screen/Display (OLED)", "LCD-9530", 18000, 1200),
-        ("Dell XPS 15 9530", "Keyboard", "KB-9530", 3800, 600),
-        ("Dell XPS 15 9530", "Battery", "BAT-9530", 6500, 500),
-        ("Dell XPS 15 9530", "Motherboard", "MB-9530", 35000, 2500),
-        ("Dell XPS 15 9530", "SSD (1TB NVMe)", "SSD1T-9530", 7500, 400),
-        ("Dell XPS 15 9530", "GPU (RTX 4060)", "GPU-9530", 22000, 2000),
-        ("Dell XPS 15 9530", "Fan/Cooling", "FAN-9530", 1800, 600),
-        ("Dell Latitude 5540", "Screen/Display", "LCD-5540", 5500, 800),
-        ("Dell Latitude 5540", "Keyboard", "KB-5540", 2000, 500),
-        ("Dell Latitude 5540", "Battery", "BAT-5540", 3800, 400),
-        ("Dell Latitude 5540", "Motherboard", "MB-5540", 18000, 1500),
-        ("Dell Latitude 5540", "RAM (16GB DDR4)", "RAM16-5540", 3500, 300),
-        ("Dell Latitude 5540", "Charger/Adapter", "CHG-5540", 1600, 0),
-        ("Dell Latitude 5540", "Fan/Cooling", "FAN-5540", 1000, 500),
-        ("Dell Vostro 3520", "Screen/Display", "LCD-V3520", 4000, 800),
-        ("Dell Vostro 3520", "Keyboard", "KB-V3520", 1500, 500),
-        ("Dell Vostro 3520", "Battery", "BAT-V3520", 2800, 400),
-        ("Dell Vostro 3520", "Motherboard", "MB-V3520", 10000, 1500),
-        ("Dell Vostro 3520", "RAM (8GB DDR4)", "RAM8-V3520", 2000, 300),
-        ("Dell Vostro 3520", "SSD (256GB)", "SSD256-V3520", 2200, 400),
-        ("Dell Vostro 3520", "Charger/Adapter", "CHG-V3520", 1200, 0),
-        ("Dell Vostro 3520", "Fan/Cooling", "FAN-V3520", 800, 500),
-        # --- SERVICES (not model-specific) ---
-        ("Any Dell Laptop/Desktop", "Windows Installation (Fresh)", "SVC-WIN-FRESH", 500, 0),
-        ("Any Dell Laptop/Desktop", "Windows Installation (Upgrade)", "SVC-WIN-UPGRADE", 700, 0),
-        ("Any Dell Laptop/Desktop", "Windows + Driver Setup (Full)", "SVC-WIN-FULL", 1000, 0),
-        ("Any Dell Laptop/Desktop", "Data Backup + Windows Install", "SVC-WIN-BACKUP", 1500, 0),
-    ]
-    df = pd.DataFrame(parts, columns=["model", "part", "part_code", "price", "labour_charge"])
-    df.to_excel(PARTS_EXCEL_PATH, index=False, engine="openpyxl")
-    print(f"Auto-created service_parts.xlsx with {len(df)} parts")
-    return df
-
-
 def load_parts_data():
-    """Load service parts from Excel. Auto-creates if missing/corrupted."""
-    try:
-        if not os.path.exists(PARTS_EXCEL_PATH) or os.path.getsize(PARTS_EXCEL_PATH) < 100:
-            return _create_default_parts_excel()
-        return pd.read_excel(PARTS_EXCEL_PATH, engine="openpyxl")
-    except Exception:
-        return _create_default_parts_excel()
+    """Load service parts from database. Returns a DataFrame for backward compatibility."""
+    parts = ServicePart.query.all()
+    if not parts:
+        return pd.DataFrame(columns=["model", "part", "part_code", "price", "labour_charge"])
+    data = [{"model": p.model, "part": p.part, "part_code": p.part_code,
+             "price": p.price, "labour_charge": p.labour_charge} for p in parts]
+    return pd.DataFrame(data)
 
 
 def get_parts_context():
@@ -1614,32 +1555,20 @@ def service_chat():
             # Verify user is logged in before saving
             if current_user.is_authenticated:
                 request_id = f"SRV-{random.randint(10000, 99999)}"
-                requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
 
-                service_request = {
-                    "request_id": request_id,
-                    "customer_name": booking_data.get("name", ""),
-                    "customer_phone": booking_data.get("phone", ""),
-                    "issue_description": booking_data.get("issue", ""),
-                    "model": booking_data.get("model", ""),
-                    "parts": booking_data.get("parts", []),
-                    "total_estimate": booking_data.get("total_estimate", 0),
-                    "user_email": current_user.email,
-                    "status": "pending",
-                    "created_at": datetime.now().isoformat(),
-                }
-
-                existing = []
-                if os.path.exists(requests_path):
-                    try:
-                        with open(requests_path, "r") as f:
-                            existing = json.load(f)
-                    except (json.JSONDecodeError, IOError):
-                        existing = []
-
-                existing.append(service_request)
-                with open(requests_path, "w") as f:
-                    json.dump(existing, f, indent=2)
+                sr = ServiceRequest(
+                    request_id=request_id,
+                    customer_name=booking_data.get("name", ""),
+                    customer_phone=booking_data.get("phone", ""),
+                    customer_email=current_user.email,
+                    model=booking_data.get("model", ""),
+                    issue_description=booking_data.get("issue", ""),
+                    parts=json.dumps(booking_data.get("parts", [])),
+                    total_estimate=booking_data.get("total_estimate", 0),
+                    status="pending",
+                )
+                db.session.add(sr)
+                db.session.commit()
 
                 # Remove the marker from reply and append real confirmation
                 reply = re.sub(r'<!--BOOK_SERVICE:.*?-->', '', reply).strip()
@@ -1690,31 +1619,20 @@ def service_submit():
         return jsonify({"success": False, "error": "No data"}), 400
 
     request_id = f"SRV-{random.randint(10000, 99999)}"
-    requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
 
-    service_request = {
-        "request_id": request_id,
-        "customer_name": data.get("name", ""),
-        "customer_phone": data.get("phone", ""),
-        "issue_description": data.get("issue", ""),
-        "model": data.get("model", ""),
-        "parts": data.get("parts", []),
-        "total_estimate": data.get("total_estimate", 0),
-        "status": "pending",
-        "created_at": datetime.now().isoformat(),
-    }
-
-    existing = []
-    if os.path.exists(requests_path):
-        try:
-            with open(requests_path, "r") as f:
-                existing = json.load(f)
-        except (json.JSONDecodeError, IOError):
-            existing = []
-
-    existing.append(service_request)
-    with open(requests_path, "w") as f:
-        json.dump(existing, f, indent=2)
+    sr = ServiceRequest(
+        request_id=request_id,
+        customer_name=data.get("name", ""),
+        customer_phone=data.get("phone", ""),
+        customer_email=current_user.email if current_user.is_authenticated else "",
+        model=data.get("model", ""),
+        issue_description=data.get("issue", ""),
+        parts=json.dumps(data.get("parts", [])),
+        total_estimate=data.get("total_estimate", 0),
+        status="pending",
+    )
+    db.session.add(sr)
+    db.session.commit()
 
     return jsonify({"success": True, "request_id": request_id})
 
@@ -1744,9 +1662,77 @@ def api_products():
 # APP STARTUP
 # ==========================================
 
+def seed_default_parts():
+    """Seed default service parts into DB if table is empty."""
+    if ServicePart.query.first():
+        return  # Already seeded
+
+    default_parts = [
+        ("Dell Inspiron 15 3520", "Screen/Display", "LCD-3520", 4500, 800),
+        ("Dell Inspiron 15 3520", "Keyboard", "KB-3520", 1800, 500),
+        ("Dell Inspiron 15 3520", "Battery", "BAT-3520", 3200, 400),
+        ("Dell Inspiron 15 3520", "Motherboard", "MB-3520", 12500, 1500),
+        ("Dell Inspiron 15 3520", "RAM (8GB DDR4)", "RAM8-3520", 2200, 300),
+        ("Dell Inspiron 15 3520", "SSD (512GB)", "SSD512-3520", 3500, 400),
+        ("Dell Inspiron 15 3520", "Charger/Adapter", "CHG-3520", 1500, 0),
+        ("Dell Inspiron 15 3520", "Touchpad", "TP-3520", 1200, 600),
+        ("Dell Inspiron 15 3520", "Fan/Cooling", "FAN-3520", 900, 500),
+        ("Dell Inspiron 15 3520", "Hinge", "HNG-3520", 1100, 700),
+        ("Dell Inspiron 14 5430", "Screen/Display", "LCD-5430", 6500, 800),
+        ("Dell Inspiron 14 5430", "Keyboard", "KB-5430", 2200, 500),
+        ("Dell Inspiron 14 5430", "Battery", "BAT-5430", 4000, 400),
+        ("Dell Inspiron 14 5430", "Motherboard", "MB-5430", 16000, 1500),
+        ("Dell Inspiron 14 5430", "RAM (16GB LPDDR5)", "RAM16-5430", 4500, 300),
+        ("Dell Inspiron 14 5430", "SSD (512GB)", "SSD512-5430", 3500, 400),
+        ("Dell Inspiron 14 5430", "Charger/Adapter", "CHG-5430", 1800, 0),
+        ("Dell Inspiron 14 5430", "Fan/Cooling", "FAN-5430", 1100, 500),
+        ("Dell XPS 13 9340", "Screen/Display", "LCD-9340", 12000, 1000),
+        ("Dell XPS 13 9340", "Keyboard", "KB-9340", 3500, 600),
+        ("Dell XPS 13 9340", "Battery", "BAT-9340", 5500, 500),
+        ("Dell XPS 13 9340", "Motherboard", "MB-9340", 28000, 2000),
+        ("Dell XPS 13 9340", "RAM (16GB LPDDR5x)", "RAM16-9340", 5500, 300),
+        ("Dell XPS 13 9340", "SSD (512GB NVMe)", "SSD512-9340", 4500, 400),
+        ("Dell XPS 13 9340", "Charger (USB-C)", "CHG-9340", 2500, 0),
+        ("Dell XPS 13 9340", "Fan/Cooling", "FAN-9340", 1500, 600),
+        ("Dell XPS 15 9530", "Screen/Display (OLED)", "LCD-9530", 18000, 1200),
+        ("Dell XPS 15 9530", "Keyboard", "KB-9530", 3800, 600),
+        ("Dell XPS 15 9530", "Battery", "BAT-9530", 6500, 500),
+        ("Dell XPS 15 9530", "Motherboard", "MB-9530", 35000, 2500),
+        ("Dell XPS 15 9530", "SSD (1TB NVMe)", "SSD1T-9530", 7500, 400),
+        ("Dell XPS 15 9530", "GPU (RTX 4060)", "GPU-9530", 22000, 2000),
+        ("Dell XPS 15 9530", "Fan/Cooling", "FAN-9530", 1800, 600),
+        ("Dell Latitude 5540", "Screen/Display", "LCD-5540", 5500, 800),
+        ("Dell Latitude 5540", "Keyboard", "KB-5540", 2000, 500),
+        ("Dell Latitude 5540", "Battery", "BAT-5540", 3800, 400),
+        ("Dell Latitude 5540", "Motherboard", "MB-5540", 18000, 1500),
+        ("Dell Latitude 5540", "RAM (16GB DDR4)", "RAM16-5540", 3500, 300),
+        ("Dell Latitude 5540", "Charger/Adapter", "CHG-5540", 1600, 0),
+        ("Dell Latitude 5540", "Fan/Cooling", "FAN-5540", 1000, 500),
+        ("Dell Vostro 3520", "Screen/Display", "LCD-V3520", 4000, 800),
+        ("Dell Vostro 3520", "Keyboard", "KB-V3520", 1500, 500),
+        ("Dell Vostro 3520", "Battery", "BAT-V3520", 2800, 400),
+        ("Dell Vostro 3520", "Motherboard", "MB-V3520", 10000, 1500),
+        ("Dell Vostro 3520", "RAM (8GB DDR4)", "RAM8-V3520", 2000, 300),
+        ("Dell Vostro 3520", "SSD (256GB)", "SSD256-V3520", 2200, 400),
+        ("Dell Vostro 3520", "Charger/Adapter", "CHG-V3520", 1200, 0),
+        ("Dell Vostro 3520", "Fan/Cooling", "FAN-V3520", 800, 500),
+        ("Any Dell Laptop/Desktop", "Windows Installation (Fresh)", "SVC-WIN-FRESH", 500, 0),
+        ("Any Dell Laptop/Desktop", "Windows Installation (Upgrade)", "SVC-WIN-UPGRADE", 700, 0),
+        ("Any Dell Laptop/Desktop", "Windows + Driver Setup (Full)", "SVC-WIN-FULL", 1000, 0),
+        ("Any Dell Laptop/Desktop", "Data Backup + Windows Install", "SVC-WIN-BACKUP", 1500, 0),
+    ]
+
+    for model, part, code, price, labour in default_parts:
+        db.session.add(ServicePart(model=model, part=part, part_code=code, price=price, labour_charge=labour))
+    db.session.commit()
+    print(f"Seeded {len(default_parts)} default service parts into DB")
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+
+        # Seed admin user
         if not User.query.filter_by(email="admin@dellstore.com").first():
             admin = User(
                 name="Admin", email="admin@dellstore.com",
@@ -1755,4 +1741,7 @@ if __name__ == "__main__":
             db.session.add(admin)
             db.session.commit()
 
-    app.run(debug=True, port=5000)
+        # Seed default service parts
+        seed_default_parts()
+
+    app.run(debug=app.config.get("DEBUG", False), port=5000)

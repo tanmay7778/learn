@@ -11,7 +11,7 @@ class Product(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    category = db.Column(db.String(50), nullable=False)  # laptop, desktop, all-in-one
+    category = db.Column(db.String(50), nullable=False)  # laptop, desktop, all-in-one, accessory
     dell_series = db.Column(db.String(50))  # Inspiron, XPS, Latitude, OptiPlex, Vostro
 
     # Specs (scraped from Dell)
@@ -114,3 +114,39 @@ class Review(db.Model):
     rating = db.Column(db.Integer, nullable=False)  # 1-5
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ---- SERVICE REQUEST MODEL (replaces service_requests.json) ----
+class ServiceRequest(db.Model):
+    __tablename__ = "service_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.String(20), unique=True, nullable=False)  # SRV-XXXXX
+    customer_name = db.Column(db.String(100), nullable=False)
+    customer_phone = db.Column(db.String(20), nullable=False)
+    customer_email = db.Column(db.String(120))  # Linked to logged-in user
+    model = db.Column(db.String(100), nullable=False)  # Dell model name
+    issue_description = db.Column(db.Text, nullable=False)
+    parts = db.Column(db.Text)  # JSON string of parts list
+    total_estimate = db.Column(db.Float, default=0)
+    status = db.Column(db.String(30), default="pending")  # pending, in-progress, completed, cancelled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---- SERVICE PART MODEL (replaces service_parts.xlsx) ----
+class ServicePart(db.Model):
+    __tablename__ = "service_parts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    model = db.Column(db.String(100), nullable=False)  # e.g., "Dell XPS 13 9340"
+    part = db.Column(db.String(100), nullable=False)   # e.g., "Battery"
+    part_code = db.Column(db.String(30), nullable=False)  # e.g., "BAT-9340"
+    price = db.Column(db.Float, nullable=False)        # Part cost in ₹
+    labour_charge = db.Column(db.Float, default=0)     # Labour cost in ₹
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Composite unique constraint (one entry per model+part_code)
+    __table_args__ = (
+        db.UniqueConstraint("model", "part_code", name="uq_model_part_code"),
+    )

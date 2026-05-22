@@ -1,0 +1,32 @@
+# Environment variables (NEVER commit)
+.env
+
+# Database
+instance/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+
+# Data files (regenerated at runtime)
+data/service_parts.xlsx
+data/service_requests.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (optional — uncomment if you don't want to track product images)
+# static/images/products/
