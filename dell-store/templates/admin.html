@@ -95,6 +95,39 @@
     </div>
 </div>
 
+
+<!-- SERVICE PARTS UPLOAD (for Chatbot pricing) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-tools"></i> Service Parts & Pricing (Chatbot Database)</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <form action="{{ url_for('upload_service_parts') }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+                    <input type="file" name="parts_file" accept=".xlsx,.xls" class="form-control" required>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-5">
+                <a href="{{ url_for('download_service_parts_template') }}" class="btn btn-outline-warning">
+                    <i class="fas fa-download"></i> Download Template
+                </a>
+                <small class="text-muted ms-2">Upload your model + part + price list.</small>
+            </div>
+        </div>
+        <div class="mt-2">
+            <small class="text-muted">
+                <strong>Required columns:</strong> model, part, part_code, price, labour_charge |
+                This data is used by the <strong>Service Chatbot</strong> to give repair estimates.
+                Upload a new file anytime to update pricing — the chatbot reads it in real-time.
+            </small>
+        </div>
+    </div>
+</div>
+
 <!-- PRODUCT TABLE -->
 <div class="card shadow-sm">
     <div class="card-header bg-primary text-white">
