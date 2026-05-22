@@ -950,6 +950,66 @@ def update_service_status(request_id):
     return redirect(url_for("admin_service_requests"))
 
 
+
+
+@app.route("/admin/upload-service-parts", methods=["POST"])
+@login_required
+def upload_service_parts():
+    """Admin uploads a custom service_parts.xlsx with model + part + price data."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if "parts_file" not in request.files:
+        flash("No file selected!", "error")
+        return redirect(url_for("admin_panel"))
+
+    file = request.files["parts_file"]
+    if file.filename == "" or not file.filename.lower().endswith((".xlsx", ".xls")):
+        flash("Invalid file! Upload .xlsx or .xls.", "error")
+        return redirect(url_for("admin_panel"))
+
+    try:
+        df = pd.read_excel(file, engine="openpyxl")
+        df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+
+        # Validate required columns
+        required_cols = {"model", "part", "part_code", "price", "labour_charge"}
+        if not required_cols.issubset(set(df.columns)):
+            missing = required_cols - set(df.columns)
+            flash(f"Missing required columns: {', '.join(missing)}. Need: model, part, part_code, price, labour_charge", "error")
+            return redirect(url_for("admin_panel"))
+
+        # Save to the service_parts.xlsx path
+        df.to_excel(PARTS_EXCEL_PATH, index=False, engine="openpyxl")
+        flash(f"Service parts updated! {len(df)} parts loaded for {df['model'].nunique()} models.", "success")
+    except Exception as e:
+        flash(f"Error reading file: {str(e)}", "error")
+
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/admin/download-service-parts-template")
+@login_required
+def download_service_parts_template():
+    """Download a template Excel for service parts upload."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    sample_data = {
+        "model": ["Dell Inspiron 15 3520", "Dell Inspiron 15 3520", "Dell XPS 13 9340", "Dell XPS 13 9340"],
+        "part": ["Battery", "Screen/Display", "Battery", "Keyboard"],
+        "part_code": ["BAT-3520", "LCD-3520", "BAT-9340", "KB-9340"],
+        "price": [3200, 4500, 5500, 3500],
+        "labour_charge": [400, 800, 500, 600],
+    }
+    df = pd.DataFrame(sample_data)
+    output = io.BytesIO()
+    df.to_excel(output, index=False, engine="openpyxl")
+    output.seek(0)
+    return send_file(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                     as_attachment=True, download_name="service_parts_template.xlsx")
+
+
 # ==========================================
 # SERVICE CHATBOT — LLM INTEGRATION
 # ==========================================
@@ -1505,6 +1565,21 @@ def service_chat():
     chat_history.append({"role": "user", "content": user_message})
 
     parts_context = get_parts_context()
+
+    # ---- HARD LOGIN CHECK ----
+    # If user wants to book/submit but is NOT logged in, intercept immediately
+    booking_keywords = ["book", "submit", "request", "appointment", "schedule", "yes please book", "yes book", "go ahead book"]
+    msg_lower = user_message.lower()
+    if any(kw in msg_lower for kw in booking_keywords) and not current_user.is_authenticated:
+        reply = (
+            "⚠️ **You need to be logged in to book a service request.**\n\n"
+            "Please register or log in first using the button at the **top-right corner** of the page.\n\n"
+            "Once you're logged in, come back and I'll book your service request right away!\n\n"
+            "🔑 [Register/Login → top-right corner of the page]"
+        )
+        chat_history.append({"role": "assistant", "content": reply})
+        session["chat_history"] = chat_history
+        return jsonify({"reply": reply, "request_id": None})
 
     # Call LLM (with automatic fallback to local bot)
     reply, error = call_llm(chat_history, parts_context)
