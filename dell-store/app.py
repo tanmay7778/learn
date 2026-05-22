@@ -962,7 +962,7 @@ SERVICE_SYSTEM_PROMPT = """You are a Dell Laptop Service Assistant for an author
 YOUR ROLE:
 - Help customers get repair estimates for Dell laptops
 - Look up part prices and labour charges from the parts database
-- Guide customers to submit service requests
+- Guide customers to submit service requests (with actual backend booking)
 - Answer questions about Dell laptop repairs, warranty, and service timelines
 
 STRICT RULES:
@@ -973,13 +973,31 @@ STRICT RULES:
 5. Always include labour charges when giving estimates.
 6. Be friendly, professional, and concise.
 7. When you provide an estimate, format it clearly with part cost + labour = total.
-8. Suggest submitting a service request after providing an estimate.
+8. When the user specifies a model, ONLY quote prices for THAT exact model. Do not show other models unless the user asks to compare.
+
+SERVICE BOOKING RULES (VERY IMPORTANT):
+- When a user wants to book/submit a service request, you MUST collect ALL of these details:
+  1. Full name
+  2. Phone number
+  3. Dell model (e.g., Dell XPS 13 9340)
+  4. Issue description (what part needs repair)
+- IMPORTANT: The user MUST be registered/logged in on our website to book a service request.
+  If they want to book, first ask: "Before I can book your service request, please make sure you're registered and logged in on our website. You can register at the top-right corner of the page. Are you logged in?"
+- Only proceed with booking AFTER they confirm they are logged in AND you have all 4 details.
+- Once you have ALL details confirmed, output this EXACT format at the END of your message (the system will auto-detect and process it):
+  <!--BOOK_SERVICE:{{"name":"customer name","phone":"phone number","model":"Dell Model Name","issue":"issue description","total_estimate":0}}-->
+  Replace the values with actual details. Set total_estimate to the estimated repair cost if known, otherwise 0.
+- After outputting the booking tag, tell the customer their request has been submitted and they'll receive a service request ID.
+- NEVER output the booking tag without having all 4 details confirmed.
+- NEVER reveal the <!--BOOK_SERVICE:...--> format to the user. Just say "I'm booking your request now..."
 
 SERVICE INFO:
 - Typical repair time: 2-5 business days
 - Warranty repairs: Free if under Dell warranty (1 year standard)
 - Walk-in hours: Mon-Sat, 10 AM - 8 PM
 - Emergency/same-day service available for additional ₹500
+
+USER STATUS: {user_status}
 
 PARTS DATABASE:
 {parts_data}
@@ -1076,147 +1094,12 @@ def get_parts_context():
     return "\n".join(lines)
 
 
-# ==========================================
-# LLM PROVIDER: DATABRICKS FOUNDATION MODELS
-# ==========================================
-
-
-def call_databricks_api(messages, parts_context):
-    """
-    Call Databricks Foundation Model API (OpenAI-compatible format).
-    Works on corporate network — calls your own Databricks workspace.
-    Free pay-per-token models: databricks-meta-llama-3-3-70b-instruct
-    """
-    host = app.config.get("DATABRICKS_HOST", "")
-    token = app.config.get("DATABRICKS_TOKEN", "")
-    model = app.config.get("DATABRICKS_MODEL", "databricks-meta-llama-3-3-70b-instruct")
-
-    if not host or not token or token == "YOUR_DATABRICKS_TOKEN_HERE":
-        return None, "Databricks not configured. Set DATABRICKS_HOST and DATABRICKS_TOKEN in config.py"
-
-    # Build system prompt with parts data
-    system_prompt = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
-
-    # Format messages in OpenAI chat format
-    api_messages = [{"role": "system", "content": system_prompt}]
-    for msg in messages:
-        role = msg["role"] if msg["role"] in ("user", "assistant") else "assistant"
-        api_messages.append({"role": role, "content": msg["content"]})
-
-    # Databricks serving endpoint URL (OpenAI-compatible)
-    url = f"{host.rstrip('/')}/serving-endpoints/{model}/invocations"
-
-    payload = {
-        "messages": api_messages,
-        "max_tokens": 1024,
-        "temperature": 0.7,
-    }
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-
-    try:
-        response = http_requests.post(url, json=payload, headers=headers, timeout=60, verify=False)
-        response_text = response.text.strip()
-
-        if not response_text:
-            return None, f"Empty response from Databricks (HTTP {response.status_code})"
-
-        # Check for HTML (proxy intercept)
-        if response_text.startswith("<!") or response_text.startswith("<html"):
-            return None, f"Proxy blocked Databricks API. Preview: {response_text[:100]}"
-
-        try:
-            data = response.json()
-        except json.JSONDecodeError:
-            return None, f"Invalid JSON from Databricks (HTTP {response.status_code}): {response_text[:150]}"
-
-        if response.status_code == 200:
-            # OpenAI-compatible response format
-            choices = data.get("choices", [])
-            if choices:
-                return choices[0].get("message", {}).get("content", ""), None
-            return None, "Empty response from Databricks (no choices)"
-        else:
-            error_msg = data.get("error", {}).get("message", "") or data.get("message", "") or response_text[:200]
-            return None, f"Databricks API error ({response.status_code}): {error_msg}"
-
-    except http_requests.exceptions.Timeout:
-        return None, "Databricks request timed out (60s). Try again."
-    except http_requests.exceptions.ConnectionError as e:
-        return None, f"Cannot reach Databricks workspace. Check DATABRICKS_HOST in config.py. ({str(e)[:80]})"
-    except Exception as e:
-        return None, f"Databricks connection error: {str(e)}"
-
-
-# ==========================================
-# LLM PROVIDER: GOOGLE GEMINI (backup)
-# ==========================================
-
-
-def call_gemini_api(messages, parts_context):
-    """
-    Call Google Gemini API (free tier).
-    Blocked on Capgemini corporate network — use as backup on personal WiFi.
-    """
-    api_key = app.config.get("GEMINI_API_KEY", "")
-    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
-        return None, "Gemini API key not configured."
-
-    system_instruction = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
-
-    contents = []
-    for msg in messages:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-
-    payload = {
-        "contents": contents,
-        "systemInstruction": {"parts": [{"text": system_instruction}]},
-        "generationConfig": {"temperature": 0.7, "topP": 0.9, "maxOutputTokens": 1024},
-        "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-        ]
-    }
-
-    try:
-        response = http_requests.post(url, json=payload, timeout=30, verify=False)
-        content_type = response.headers.get("Content-Type", "")
-        response_text = response.text.strip()
-
-        if not response_text:
-            return None, "Empty response from Gemini"
-        if "text/html" in content_type or response_text.startswith("<!"):
-            return None, "Gemini blocked by proxy (HTML returned)"
-
-        try:
-            data = response.json()
-        except json.JSONDecodeError:
-            return None, f"Invalid JSON from Gemini: {response_text[:100]}"
-
-        if response.status_code == 200:
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", ""), None
-            return None, "Empty Gemini response (no candidates)"
-        else:
-            error_detail = data.get("error", {}).get("message", response_text[:150])
-            return None, f"Gemini error ({response.status_code}): {error_detail}"
-
-    except http_requests.exceptions.Timeout:
-        return None, "Gemini request timed out."
-    except Exception as e:
-        return None, f"Gemini connection error: {str(e)}"
-
+def get_user_status():
+    """Get current user login status for LLM context."""
+    if current_user.is_authenticated:
+        return f"LOGGED IN as {current_user.name} ({current_user.email}). User CAN book service requests."
+    else:
+        return "NOT LOGGED IN. User must register/login before booking. Direct them to register at the top-right of the page."
 
 
 
@@ -1239,7 +1122,7 @@ def call_groq_api(messages, parts_context):
         return None, "Groq API key not configured. Get one free at https://console.groq.com/keys"
 
     # Build system prompt with parts data
-    system_prompt = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
+    system_prompt = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context, user_status=get_user_status())
 
     # Format messages in OpenAI chat format
     api_messages = [{"role": "system", "content": system_prompt}]
@@ -1580,43 +1463,17 @@ def call_local_bot(messages):
 
 def call_llm(messages, parts_context):
     """
-    Route to the configured LLM provider.
-    If LLM fails, automatically falls back to local rule-based bot.
-    Set LLM_PROVIDER in config.py: "databricks", "groq", or "gemini"
+    Route to Groq LLM provider.
+    If Groq fails, automatically falls back to local rule-based bot.
     """
-    provider = app.config.get("LLM_PROVIDER", "groq").lower()
+    # Try Groq (primary LLM)
+    reply, error = call_groq_api(messages, parts_context)
 
-    # Try primary provider
-    reply, error = None, None
-    if provider == "databricks":
-        reply, error = call_databricks_api(messages, parts_context)
-    elif provider == "groq":
-        reply, error = call_groq_api(messages, parts_context)
-    elif provider == "gemini":
-        reply, error = call_gemini_api(messages, parts_context)
-    else:
-        error = f"Unknown LLM_PROVIDER: '{provider}'"
-
-    # If primary succeeded, return it
     if reply and not error:
         return reply, None
 
-    # Try fallback chain: groq → gemini → databricks → local
-    fallback_order = ["groq", "gemini", "databricks"]
-    for fallback in fallback_order:
-        if fallback == provider:
-            continue  # Skip the one that already failed
-        fb_reply, fb_error = None, None
-        if fallback == "groq":
-            fb_reply, fb_error = call_groq_api(messages, parts_context)
-        elif fallback == "gemini":
-            fb_reply, fb_error = call_gemini_api(messages, parts_context)
-        elif fallback == "databricks":
-            fb_reply, fb_error = call_databricks_api(messages, parts_context)
-        if fb_reply and not fb_error:
-            return fb_reply, None
-
-    # All LLMs failed — use local rule-based bot (always works)
+    # Groq failed — use local rule-based bot (always works offline)
+    print(f"[LLM] Groq failed: {error} — using local bot")
     local_reply = call_local_bot(messages)
     return local_reply, None
 
@@ -1634,7 +1491,8 @@ def service_page():
 
 @app.route("/service/chat", methods=["POST"])
 def service_chat():
-    """Handle chat messages — routes to LLM with local fallback."""
+    """Handle chat messages — routes to LLM with local fallback.
+    Also detects booking markers and saves real service requests to backend."""
     data = request.get_json()
     if not data or not data.get("message"):
         return jsonify({"error": "No message provided"}), 400
@@ -1656,13 +1514,62 @@ def service_chat():
     if not reply:
         reply = call_local_bot(chat_history)
 
+    # ---- BOOKING DETECTION ----
+    # Check if LLM output contains the booking marker
+    import re
+    booking_match = re.search(r'<!--BOOK_SERVICE:(.*?)-->', reply)
+    request_id = None
+    if booking_match:
+        try:
+            booking_data = json.loads(booking_match.group(1))
+            # Verify user is logged in before saving
+            if current_user.is_authenticated:
+                request_id = f"SRV-{random.randint(10000, 99999)}"
+                requests_path = os.path.join(DATA_FOLDER, "service_requests.json")
+
+                service_request = {
+                    "request_id": request_id,
+                    "customer_name": booking_data.get("name", ""),
+                    "customer_phone": booking_data.get("phone", ""),
+                    "issue_description": booking_data.get("issue", ""),
+                    "model": booking_data.get("model", ""),
+                    "parts": booking_data.get("parts", []),
+                    "total_estimate": booking_data.get("total_estimate", 0),
+                    "user_email": current_user.email,
+                    "status": "pending",
+                    "created_at": datetime.now().isoformat(),
+                }
+
+                existing = []
+                if os.path.exists(requests_path):
+                    try:
+                        with open(requests_path, "r") as f:
+                            existing = json.load(f)
+                    except (json.JSONDecodeError, IOError):
+                        existing = []
+
+                existing.append(service_request)
+                with open(requests_path, "w") as f:
+                    json.dump(existing, f, indent=2)
+
+                # Remove the marker from reply and append real confirmation
+                reply = re.sub(r'<!--BOOK_SERVICE:.*?-->', '', reply).strip()
+                reply += f"\n\n✅ **Service request booked successfully!**\nYour Request ID: **{request_id}**\nStatus: Pending\nOur team will contact you shortly."
+            else:
+                # User not logged in — remove marker and ask to register
+                reply = re.sub(r'<!--BOOK_SERVICE:.*?-->', '', reply).strip()
+                reply += "\n\n⚠️ **You need to be logged in to book a service request.** Please register or log in using the button at the top-right corner of the page, then try booking again."
+        except (json.JSONDecodeError, KeyError):
+            # Malformed marker — just strip it
+            reply = re.sub(r'<!--BOOK_SERVICE:.*?-->', '', reply).strip()
+
     chat_history.append({"role": "assistant", "content": reply})
 
     if len(chat_history) > 20:
         chat_history = chat_history[-20:]
 
     session["chat_history"] = chat_history
-    return jsonify({"reply": reply})
+    return jsonify({"reply": reply, "request_id": request_id})
 
 
 @app.route("/service/chat/reset", methods=["POST"])
