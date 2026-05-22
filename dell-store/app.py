@@ -2,6 +2,7 @@ import os
 import io
 import json
 import random
+import re
 import urllib3
 from datetime import datetime
 import pandas as pd
@@ -34,6 +35,7 @@ for _series in ["inspiron", "vostro", "xps", "alienware", "optiplex", "precision
     os.makedirs(os.path.join(SERIES_FOLDER, _series), exist_ok=True)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_FOLDER, exist_ok=True)
+PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
 
 # Initialize extensions
 db.init_app(app)
@@ -996,11 +998,11 @@ def download_service_parts_template():
         return jsonify({"error": "Unauthorized"}), 403
 
     sample_data = {
-        "model": ["Dell Inspiron 15 3520", "Dell Inspiron 15 3520", "Dell XPS 13 9340", "Dell XPS 13 9340"],
-        "part": ["Battery", "Screen/Display", "Battery", "Keyboard"],
-        "part_code": ["BAT-3520", "LCD-3520", "BAT-9340", "KB-9340"],
-        "price": [3200, 4500, 5500, 3500],
-        "labour_charge": [400, 800, 500, 600],
+        "model": ["Dell Inspiron 15 3520", "Dell Inspiron 15 3520", "Dell XPS 13 9340", "Any Dell Laptop/Desktop"],
+        "part": ["Battery", "Screen/Display", "Battery", "Windows Installation (Fresh)"],
+        "part_code": ["BAT-3520", "LCD-3520", "BAT-9340", "SVC-WIN-FRESH"],
+        "price": [3200, 4500, 5500, 500],
+        "labour_charge": [400, 800, 500, 0],
     }
     df = pd.DataFrame(sample_data)
     output = io.BytesIO()
@@ -1010,11 +1012,11 @@ def download_service_parts_template():
                      as_attachment=True, download_name="service_parts_template.xlsx")
 
 
+
 # ==========================================
 # SERVICE CHATBOT — LLM INTEGRATION
 # ==========================================
 
-PARTS_EXCEL_PATH = os.path.join(DATA_FOLDER, "service_parts.xlsx")
 
 # Domain-locked system prompt
 SERVICE_SYSTEM_PROMPT = """You are a Dell Laptop Service Assistant for an authorized Dell service center.
@@ -1056,6 +1058,9 @@ SERVICE INFO:
 - Warranty repairs: Free if under Dell warranty (1 year standard)
 - Walk-in hours: Mon-Sat, 10 AM - 8 PM
 - Emergency/same-day service available for additional ₹500
+- Windows Installation: Available for ANY Dell laptop/desktop (no specific model needed)
+  Options: Fresh Install (₹500), Upgrade (₹700), Full Setup with Drivers (₹1000), Data Backup + Install (₹1500)
+  These prices are in the PARTS DATABASE under "Any Dell Laptop/Desktop". Always quote from there.
 
 USER STATUS: {user_status}
 
@@ -1122,6 +1127,11 @@ def _create_default_parts_excel():
         ("Dell Vostro 3520", "SSD (256GB)", "SSD256-V3520", 2200, 400),
         ("Dell Vostro 3520", "Charger/Adapter", "CHG-V3520", 1200, 0),
         ("Dell Vostro 3520", "Fan/Cooling", "FAN-V3520", 800, 500),
+        # --- SERVICES (not model-specific) ---
+        ("Any Dell Laptop/Desktop", "Windows Installation (Fresh)", "SVC-WIN-FRESH", 500, 0),
+        ("Any Dell Laptop/Desktop", "Windows Installation (Upgrade)", "SVC-WIN-UPGRADE", 700, 0),
+        ("Any Dell Laptop/Desktop", "Windows + Driver Setup (Full)", "SVC-WIN-FULL", 1000, 0),
+        ("Any Dell Laptop/Desktop", "Data Backup + Windows Install", "SVC-WIN-BACKUP", 1500, 0),
     ]
     df = pd.DataFrame(parts, columns=["model", "part", "part_code", "price", "labour_charge"])
     df.to_excel(PARTS_EXCEL_PATH, index=False, engine="openpyxl")
@@ -1273,6 +1283,11 @@ PART_KEYWORDS = {
     "hinge": "Hinge",
     "gpu": "GPU",
     "graphics": "GPU",
+    "windows": "Windows Installation",
+    "win": "Windows Installation",
+    "os install": "Windows Installation",
+    "format": "Windows Installation",
+    "reinstall": "Windows Installation",
 }
 
 # Model keyword aliases for fuzzy matching
@@ -1517,7 +1532,7 @@ def call_local_bot(messages):
 
 
 # ==========================================
-# LLM ROUTER — tries provider, falls back to local bot
+# LLM ROUTER — Groq with local bot fallback
 # ==========================================
 
 
@@ -1591,7 +1606,6 @@ def service_chat():
 
     # ---- BOOKING DETECTION ----
     # Check if LLM output contains the booking marker
-    import re
     booking_match = re.search(r'<!--BOOK_SERVICE:(.*?)-->', reply)
     request_id = None
     if booking_match:
