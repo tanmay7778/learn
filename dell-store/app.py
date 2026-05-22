@@ -1218,6 +1218,78 @@ def call_gemini_api(messages, parts_context):
         return None, f"Gemini connection error: {str(e)}"
 
 
+
+
+# ==========================================
+# LLM PROVIDER: GROQ (free, fast inference)
+# ==========================================
+
+
+def call_groq_api(messages, parts_context):
+    """
+    Call Groq API (OpenAI-compatible format).
+    Free tier: 30 RPM, 14,400 RPD. Fastest inference available.
+    Get key: https://console.groq.com/keys
+    Models: llama-3.3-70b-versatile, mixtral-8x7b-32768, gemma2-9b-it
+    """
+    api_key = app.config.get("GROQ_API_KEY", "")
+    model = app.config.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    if not api_key:
+        return None, "Groq API key not configured. Get one free at https://console.groq.com/keys"
+
+    # Build system prompt with parts data
+    system_prompt = SERVICE_SYSTEM_PROMPT.format(parts_data=parts_context)
+
+    # Format messages in OpenAI chat format
+    api_messages = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = msg["role"] if msg["role"] in ("user", "assistant") else "assistant"
+        api_messages.append({"role": role, "content": msg["content"]})
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+
+    payload = {
+        "model": model,
+        "messages": api_messages,
+        "max_tokens": 1024,
+        "temperature": 0.7,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = http_requests.post(url, json=payload, headers=headers, timeout=30)
+        response_text = response.text.strip()
+
+        if not response_text:
+            return None, f"Empty response from Groq (HTTP {response.status_code})"
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            return None, f"Invalid JSON from Groq (HTTP {response.status_code}): {response_text[:150]}"
+
+        if response.status_code == 200:
+            choices = data.get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", ""), None
+            return None, "Empty response from Groq (no choices)"
+        else:
+            error_msg = data.get("error", {}).get("message", "") or response_text[:200]
+            return None, f"Groq API error ({response.status_code}): {error_msg}"
+
+    except http_requests.exceptions.Timeout:
+        return None, "Groq request timed out (30s). Try again."
+    except http_requests.exceptions.ConnectionError as e:
+        return None, f"Cannot reach Groq API. Check internet connection. ({str(e)[:80]})"
+    except Exception as e:
+        return None, f"Groq connection error: {str(e)}"
+
+
 # ==========================================
 # LOCAL FALLBACK CHATBOT (no API needed)
 # ==========================================
@@ -1510,14 +1582,16 @@ def call_llm(messages, parts_context):
     """
     Route to the configured LLM provider.
     If LLM fails, automatically falls back to local rule-based bot.
-    Set LLM_PROVIDER in config.py: "databricks" or "gemini"
+    Set LLM_PROVIDER in config.py: "databricks", "groq", or "gemini"
     """
-    provider = app.config.get("LLM_PROVIDER", "databricks").lower()
+    provider = app.config.get("LLM_PROVIDER", "groq").lower()
 
     # Try primary provider
     reply, error = None, None
     if provider == "databricks":
         reply, error = call_databricks_api(messages, parts_context)
+    elif provider == "groq":
+        reply, error = call_groq_api(messages, parts_context)
     elif provider == "gemini":
         reply, error = call_gemini_api(messages, parts_context)
     else:
@@ -1527,17 +1601,22 @@ def call_llm(messages, parts_context):
     if reply and not error:
         return reply, None
 
-    # Try the OTHER provider as secondary fallback
-    secondary_reply, secondary_error = None, None
-    if provider == "databricks":
-        secondary_reply, secondary_error = call_gemini_api(messages, parts_context)
-    elif provider == "gemini":
-        secondary_reply, secondary_error = call_databricks_api(messages, parts_context)
+    # Try fallback chain: groq → gemini → databricks → local
+    fallback_order = ["groq", "gemini", "databricks"]
+    for fallback in fallback_order:
+        if fallback == provider:
+            continue  # Skip the one that already failed
+        fb_reply, fb_error = None, None
+        if fallback == "groq":
+            fb_reply, fb_error = call_groq_api(messages, parts_context)
+        elif fallback == "gemini":
+            fb_reply, fb_error = call_gemini_api(messages, parts_context)
+        elif fallback == "databricks":
+            fb_reply, fb_error = call_databricks_api(messages, parts_context)
+        if fb_reply and not fb_error:
+            return fb_reply, None
 
-    if secondary_reply and not secondary_error:
-        return secondary_reply, None
-
-    # Both LLMs failed — use local rule-based bot (always works)
+    # All LLMs failed — use local rule-based bot (always works)
     local_reply = call_local_bot(messages)
     return local_reply, None
 
