@@ -73,7 +73,7 @@
                     </div>
                     <div class="col-md-7 text-center">
                         <div class="series-hero-image">
-                            <img src="{{ url_for('static', filename='images/series/' + series_key + '/hero.png') }}" alt="{{ series.name }} laptop">
+                            <img src="{{ series_images_base }}/{{ series_key }}/hero.png" alt="{{ series.name }} laptop">
                         </div>
                     </div>
                 </div>
@@ -122,14 +122,14 @@
             </div>
             <div class="col-lg-7">
                 <div class="feature-image reveal-right" style="background: var(--dell-gray-100);">
-                    <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
+                    <img src="{{ series_images_base }}/{{ series_key }}/{{ feature.image }}" alt="{{ feature.title }}">
                 </div>
             </div>
             {% else %}
             <!-- Image left, Text right -->
             <div class="col-lg-7 order-lg-1 order-2">
                 <div class="feature-image reveal-left" style="background: var(--dell-white);">
-                    <img src="{{ url_for('static', filename='images/series/' + series_key + '/' + feature.image) }}" alt="{{ feature.title }}">
+                    <img src="{{ series_images_base }}/{{ series_key }}/{{ feature.image }}" alt="{{ feature.title }}">
                 </div>
             </div>
             <div class="col-lg-5 order-lg-2 order-1">

@@ -31,16 +31,16 @@
                 <div class="hero-slider">
                     <div class="hero-slider-track">
                         <div class="hero-slide active">
-                            <img src="{{ url_for('static', filename='images/series/inspiron/hero.png') }}" alt="Dell Inspiron">
+                            <img src="{{ series_images_base }}/inspiron/hero.png" alt="Dell Inspiron">
                         </div>
                         <div class="hero-slide">
-                            <img src="{{ url_for('static', filename='images/series/xps/hero.png') }}" alt="Dell XPS">
+                            <img src="{{ series_images_base }}/xps/hero.png" alt="Dell XPS">
                         </div>
                         <div class="hero-slide">
-                            <img src="{{ url_for('static', filename='images/series/vostro/hero.png') }}" alt="Dell Vostro">
+                            <img src="{{ series_images_base }}/vostro/hero.png" alt="Dell Vostro">
                         </div>
                         <div class="hero-slide">
-                            <img src="{{ url_for('static', filename='images/series/alienware/hero.png') }}" alt="Dell Alienware">
+                            <img src="{{ series_images_base }}/alienware/hero.png" alt="Dell Alienware">
                         </div>
                     </div>
                     <!-- Slide indicators -->
@@ -182,7 +182,7 @@
                         {% if product.discount_percent and product.discount_percent > 0 %}
                         <span class="discount-badge">{{ product.discount_percent|int }}% OFF</span>
                         {% endif %}
-                        <img src="{{ product.image_url or url_for('static', filename='images/series/inspiron/hero.png') }}"
+                        <img src="{{ product.image_url or series_images_base + '/inspiron/hero.png' }}"
                              alt="{{ product.name }}">
                     </div>
                     <div class="card-body">

@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # ===== CLOUDINARY CONFIGURATION =====
-# Uploads product images to cloud when configured; falls back to local disk otherwise
+# Uploads ALL images to cloud when configured; falls back to local disk otherwise
 _cloudinary_configured = False
 if app.config.get("CLOUDINARY_CLOUD_NAME") and app.config.get("CLOUDINARY_API_KEY"):
     cloudinary.config(
@@ -33,23 +33,32 @@ if app.config.get("CLOUDINARY_CLOUD_NAME") and app.config.get("CLOUDINARY_API_KE
         secure=True,
     )
     _cloudinary_configured = True
-    print("[Images] Cloudinary configured — product images will be stored in the cloud")
+    print("[Images] Cloudinary configured — ALL images (products + series) served from cloud")
 else:
-    print("[Images] Cloudinary NOT configured — using local disk storage (not persistent on Render)")
+    print("[Images] Cloudinary NOT configured — using local static files (dev mode)")
 
-# Image upload config (local fallback)
+# Series images base URL (available in all templates as {{ series_images_base }})
+_series_images_base = app.config.get("CLOUDINARY_SERIES_BASE_URL") or ""
+
+
+@app.context_processor
+def inject_image_globals():
+    """Make image base URLs available in ALL templates."""
+    if _series_images_base:
+        base = _series_images_base
+    else:
+        base = url_for("static", filename="images/series", _external=False)
+    return {"series_images_base": base}
+
+
+# Image upload config (local fallback for product uploads)
 UPLOAD_FOLDER = os.path.join(app.static_folder, "images", "products")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 
-# Create folders
+# Create local folders (only needed for dev without Cloudinary)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-SERIES_FOLDER = os.path.join(app.static_folder, "images", "series")
-os.makedirs(SERIES_FOLDER, exist_ok=True)
-# Per-series image folders (laptops, desktops, all-in-ones)
-for _series in ["inspiron", "vostro", "xps", "alienware", "optiplex", "precision-tower", "inspiron-desktop", "xps-desktop", "inspiron-aio", "optiplex-aio", "xps-aio"]:
-    os.makedirs(os.path.join(SERIES_FOLDER, _series), exist_ok=True)
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager(app)

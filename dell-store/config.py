@@ -32,11 +32,21 @@ class Config:
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or ""
     GROQ_MODEL = os.environ.get("GROQ_MODEL") or "llama-3.3-70b-versatile"
 
-    # ===== CLOUDINARY (Product Image Storage) =====
+    # ===== CLOUDINARY (All Image Storage — Products + Series) =====
     # Free tier: 25GB storage, 25GB bandwidth/month
     # Sign up: https://cloudinary.com/users/register_free
     # Dashboard: https://console.cloudinary.com/settings/api-keys
     CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME") or ""
     CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY") or ""
     CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET") or ""
-    CLOUDINARY_UPLOAD_FOLDER = "dell-store/products"  # Organizes images in Cloudinary
+    CLOUDINARY_UPLOAD_FOLDER = "dell-store/products"  # Product images folder
+
+    # Series images base URL (hero.png, feature1-3.png for each series)
+    # Upload series images to Cloudinary under: dell-store/series/<series_name>/
+    # Example: dell-store/series/inspiron/hero.png
+    # URL pattern: https://res.cloudinary.com/<cloud_name>/image/upload/dell-store/series/
+    if CLOUDINARY_CLOUD_NAME:
+        CLOUDINARY_SERIES_BASE_URL = f"https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/image/upload/dell-store/series"
+    else:
+        # Fallback for local dev — uses local static folder
+        CLOUDINARY_SERIES_BASE_URL = ""
