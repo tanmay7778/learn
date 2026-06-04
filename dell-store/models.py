@@ -55,6 +55,7 @@ class ProductImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=False)
     image_url = db.Column(db.String(500), nullable=False)
+    cloudinary_public_id = db.Column(db.String(300))  # For Cloudinary deletion (null = local file)
     is_primary = db.Column(db.Boolean, default=False)  # Featured image for listing
     display_order = db.Column(db.Integer, default=0)  # Sort order in slider
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

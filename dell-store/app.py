@@ -13,6 +13,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, Product, User, Order, OrderItem, Review, ProductImage, ServiceRequest, ServicePart
 from config import Config
+import cloudinary
+import cloudinary.uploader
 
 # Suppress SSL warnings (corporate proxy intercepts HTTPS)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -20,7 +22,22 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Image upload config
+# ===== CLOUDINARY CONFIGURATION =====
+# Uploads product images to cloud when configured; falls back to local disk otherwise
+_cloudinary_configured = False
+if app.config.get("CLOUDINARY_CLOUD_NAME") and app.config.get("CLOUDINARY_API_KEY"):
+    cloudinary.config(
+        cloud_name=app.config["CLOUDINARY_CLOUD_NAME"],
+        api_key=app.config["CLOUDINARY_API_KEY"],
+        api_secret=app.config["CLOUDINARY_API_SECRET"],
+        secure=True,
+    )
+    _cloudinary_configured = True
+    print("[Images] Cloudinary configured — product images will be stored in the cloud")
+else:
+    print("[Images] Cloudinary NOT configured — using local disk storage (not persistent on Render)")
+
+# Image upload config (local fallback)
 UPLOAD_FOLDER = os.path.join(app.static_folder, "images", "products")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -632,7 +649,8 @@ def update_stock(product_id):
 @app.route("/admin/upload-image/<int:product_id>", methods=["POST"])
 @login_required
 def upload_image(product_id):
-    """Upload one or multiple images for a product (stored in ProductImage table)."""
+    """Upload one or multiple images for a product.
+    Uses Cloudinary when configured, falls back to local disk."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
     product = Product.query.get_or_404(product_id)
@@ -648,32 +666,54 @@ def upload_image(product_id):
 
     for file in files:
         if file and file.filename and allowed_file(file.filename):
-            ext = file.filename.rsplit(".", 1)[1].lower()
-            # Unique filename: product_<id>_<timestamp>_<index>.<ext>
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            filename = secure_filename(f"product_{product_id}_{timestamp}_{uploaded_count}.{ext}")
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(filepath)
-
-            img_url = url_for("static", filename=f"images/products/{filename}")
             max_order += 1
+            img_url = None
+            public_id = None
 
-            # Check if this is the first image (make it primary)
-            is_first = (ProductImage.query.filter_by(product_id=product_id).count() == 0 and uploaded_count == 0)
+            if _cloudinary_configured:
+                # Upload to Cloudinary (cloud storage — persistent across deploys)
+                try:
+                    folder = app.config.get("CLOUDINARY_UPLOAD_FOLDER", "dell-store/products")
+                    result = cloudinary.uploader.upload(
+                        file,
+                        folder=folder,
+                        public_id=f"product_{product_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{uploaded_count}",
+                        overwrite=True,
+                        resource_type="image",
+                        transformation=[{"quality": "auto", "fetch_format": "auto"}],
+                    )
+                    img_url = result.get("secure_url")
+                    public_id = result.get("public_id")
+                except Exception as e:
+                    flash(f"Cloudinary upload failed: {str(e)}", "error")
+                    continue
+            else:
+                # Local disk fallback (works for dev, NOT persistent on Render)
+                ext = file.filename.rsplit(".", 1)[1].lower()
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                filename = secure_filename(f"product_{product_id}_{timestamp}_{uploaded_count}.{ext}")
+                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                file.save(filepath)
+                img_url = url_for("static", filename=f"images/products/{filename}")
 
-            img_record = ProductImage(
-                product_id=product_id,
-                image_url=img_url,
-                is_primary=is_first,
-                display_order=max_order,
-            )
-            db.session.add(img_record)
+            if img_url:
+                # Check if this is the first image (make it primary)
+                is_first = (ProductImage.query.filter_by(product_id=product_id).count() == 0 and uploaded_count == 0)
 
-            # Also set the product's thumbnail (first uploaded image)
-            if is_first or not product.image_url:
-                product.image_url = img_url
+                img_record = ProductImage(
+                    product_id=product_id,
+                    image_url=img_url,
+                    cloudinary_public_id=public_id,
+                    is_primary=is_first,
+                    display_order=max_order,
+                )
+                db.session.add(img_record)
 
-            uploaded_count += 1
+                # Also set the product's thumbnail (first uploaded image)
+                if is_first or not product.image_url:
+                    product.image_url = img_url
+
+                uploaded_count += 1
 
     if uploaded_count > 0:
         db.session.commit()
@@ -687,16 +727,22 @@ def upload_image(product_id):
 @app.route("/admin/delete-image/<int:image_id>", methods=["POST"])
 @login_required
 def delete_image(image_id):
-    """Delete a specific product image."""
+    """Delete a specific product image (from Cloudinary or local disk)."""
     if not current_user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403
 
     img = ProductImage.query.get_or_404(image_id)
     product = img.product
 
-    # Try to delete the file from disk
-    if img.image_url:
-        # Convert URL path to filesystem path
+    # Delete the actual image file
+    if img.cloudinary_public_id and _cloudinary_configured:
+        # Delete from Cloudinary
+        try:
+            cloudinary.uploader.destroy(img.cloudinary_public_id)
+        except Exception as e:
+            print(f"[Images] Cloudinary delete failed for {img.cloudinary_public_id}: {e}")
+    elif img.image_url and img.image_url.startswith("/static/"):
+        # Delete local file
         relative_path = img.image_url.replace("/static/", "")
         file_path = os.path.join(app.static_folder, relative_path)
         if os.path.exists(file_path):
